@@ -241,7 +241,7 @@ class STGCN_GCN(nn.Module):
     # STGCN contains 'TSTN TSTN TNTF' structure
         
     # T: Temporal Convolution Layer (GLU)
-    # S: Spitial Graph Convolution Layer (ChebNet)
+    # S: Spitial Graph Convolution Layer (GCN)
     # T: Temporal Convolution Layer (ReLU)
     # N: Layer Normolization
 
