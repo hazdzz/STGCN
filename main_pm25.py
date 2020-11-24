@@ -160,7 +160,7 @@ def train():
         
         # early_stopping needs the validation loss to check if it has decresed, 
         # and if it has, it will make a checkpoint of the current model
-        #early_stopping(valid_loss, model)
+        early_stopping(valid_loss, model)
 
         if early_stopping.early_stop:
             print("Early stopping.")
