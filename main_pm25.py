@@ -16,35 +16,47 @@ from torchsummary import summary
 from script import data_loader, utils, pytorchtools
 from model import stgcn
 
-parser = argparse.ArgumentParser(description='STGCN for pm2.5 prediction')
+parser = argparse.ArgumentParser(description='STGCN for PM2.5 prediction')
 parser.add_argument('--enable_cuda', type=bool, default='True',
                     help='enable CUDA, default as True')
-parser.add_argument('--window_size', type=int, default=20)
-parser.add_argument('--t_pred', type=int, default=60)
-parser.add_argument('--batch_size', type=int, default=32)
-parser.add_argument('--epochs', type=int, default=100)
-parser.add_argument('--gnn', type=str, default='GCN')
+parser.add_argument('--window_size', type=int, default=20,
+                    help='sampling period (mins)')
+parser.add_argument('--t_pred', type=int, default=60,
+                    help='the period of prediction')
+parser.add_argument('--batch_size', type=int, default=32,
+                    help='batch size, defualt as 32')
+parser.add_argument('--epochs', type=int, default=100,
+                    help='epochs, default as 100')
+parser.add_argument('--gnn', type=str, default='ChebNet',
+                    help='the type of GNN, default as ChebNet, you could choose GCN as alternative')
 parser.add_argument('--Kt', type=int, default=3,
                     help='the kernel size of causal convolution, default as 3')
 parser.add_argument('--Ks', type=int, default=3,
                     help='the kernel size of graph convolution with Chebshev Polynomials approximation(ChebNet), defulat as 3, for first-order approximation(GCN), Ks = 1')
-parser.add_argument('--opt', type=str, default='Adam')
-parser.add_argument('--data_path', type=str, default='./data/pm25/non_st_cal/pm25_ksh.csv')
-parser.add_argument('--wam_path', type=str, default='./data/pm25/non_st_cal/wam_ksh.csv')
-parser.add_argument('--model_stgcn_chebnet_save_path', type=str, default='./model/save/stgcn_chebnet.pt')
-parser.add_argument('--model_stgcn_gcn_save_path', type=str, default='./model/save/stgcn_gcn.pt')
-
+parser.add_argument('--opt', type=str, default='Adam',
+                    help='optimizer, default as Adam')
+parser.add_argument('--data_path', type=str, default='./data/pm25/non_st_cal/pm25_ksh.csv',
+                    help='the path of PM2.5 data')
+parser.add_argument('--wam_path', type=str, default='./data/pm25/non_st_cal/wam_ksh.csv',
+                    help='the path of weighted adjacency matrix')
+parser.add_argument('--model_stgcn_chebnet_save_path', type=str, default='./model/save/stgcn_chebnet_pm25.pt',
+                    help='the save path of model STGCN(ChebNet) for PM2.5')
+parser.add_argument('--model_stgcn_gcn_save_path', type=str, default='./model/save/stgcn_gcn_pm25.pt',
+                    help='the save path of model STGCN(GCN) for PM2.5')
 args = parser.parse_args()
 print('Training configs: {}'.format(args))
 
+# Running in Nvidia GPU (CUDA) or CPU
 if args.enable_cuda and torch.cuda.is_available():
     device = torch.device("cuda")
 else:
     device = torch.device("cpu")
 
 # Kt is the kernel size of casual convolution, default as 3
-# Ks is the kernel size of GCN(Chebyshev Polynomials approximation), default as 3
+# Ks is the kernel size of ChebNet(Chebyshev Polynomials approximation), default as 3
+# The kernel size of GCN(First Order Chebyshev Polynomials approximation) as 1, i.e., Ks = 1
 Kt, Ks = args.Kt, args.Ks
+# blocks: settings of channel size in st_conv_blocks / bottleneck design
 blocks = [[1, 32, 64], [64, 32, 128]]
 if (args.window_size % 2 == 0) or (args.window_size % 3 == 0) or (args.window_size % 5 == 0):
     window_size = args.window_size
@@ -103,13 +115,13 @@ if gnn == "ChebNet":
     model = model_stgcn_chebnet
     model_save_path = model_stgcn_chebnet_save_path
     model_stats = summary(model_stgcn_chebnet, (1, n_his, n_vertex))
-    early_stopping = pytorchtools.EarlyStopping(patience=20, model_name="stgcn_chebnet",verbose=True)
+    early_stopping = pytorchtools.EarlyStopping(patience=20, path="./model/checkpoint/cp_stgcn_chebnet_pm25.pt",verbose=True)
     learning_rate = 5e-4
 elif gnn == "GCN":
     model = model_stgcn_gcn
     model_save_path = model_stgcn_gcn_save_path
     model_stats = summary(model_stgcn_gcn, (1, n_his, n_vertex))
-    early_stopping = pytorchtools.EarlyStopping(patience=20, model_name="stgcn_gcn",verbose=True)
+    early_stopping = pytorchtools.EarlyStopping(patience=20, path="./model/checkpoint/cp_stgcn_gcn_pm25.pt",verbose=True)
     learning_rate = 16e-5
 if args.opt == "RMSProp":
     optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
@@ -148,7 +160,7 @@ def train():
         val_loss = val()
         valid_losses.append(val_loss)
         valid_loss = np.average(valid_losses)
-        # GPU mem usage
+        # GPU memory usage
         gpu_mem_alloc = torch.cuda.max_memory_allocated() / 1000000 if torch.cuda.is_available() else 0
         if val_loss < min_val_loss:
             min_val_loss = val_loss

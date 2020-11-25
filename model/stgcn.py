@@ -60,22 +60,22 @@ class TemporalConvLayer(nn.Module):
             P_with_rc = P + x_input
             # (P + x_input) ⊙ Sigmoid(Q)
             x_glu = P_with_rc * self.sigmoid(Q)
-            return x_glu
+            x_tc_out = x_glu
+        elif self.act_func == "Sigmoid":
+            # Temporal Convolution Layer (Sigmoid)
+            x_sigmoid = self.sigmoid(x_conv)
+            x_tc_out = x_sigmoid
+        elif self.act_func == "ReLU":
+            # Temporal Convolution Layer (ReLU)
+            x_relu = self.relu(x_conv + x_input)
+            x_tc_out = x_relu
+        elif self.act_func == "Linear":
+            # Temporal Convolution Layer (Linear)
+            x_linear = x_conv
+            x_tc_out = x_linear
         else:
-            if self.act_func == "Sigmoid":
-                # Temporal Convolution Layer (Sigmoid)
-                x_sigmoid = self.sigmoid(x_conv)
-                return x_sigmoid
-            elif self.act_func == "ReLU":
-                # Temporal Convolution Layer (ReLU)
-                x_relu = self.relu(x_conv + x_input)
-                return x_relu
-            elif self.act_func == "Linear":
-                # Temporal Convolution Layer (Linear)
-                x_linear = x_conv
-                return x_linear
-            else:
-                raise ValueError(f'ERROR: activation function "{act_func}" is not defined.')
+            raise ValueError(f'ERROR: activation function "{act_func}" is not defined.')
+        return x_tc_out
 
 class GraphConvolution_ChebNet(nn.Module):
     def __init__(self, c_in, c_out, Ks, cheb_poly):
@@ -204,7 +204,7 @@ class OutputLayer(nn.Module):
         return x_fc
 
 class STGCN_ChebNet(nn.Module):
-    # STGCN contains 'TSTN TSTN TNTF' structure
+    # STGCN(ChebNet) contains 'TSTN TSTN TNTF' structure
         
     # T: Temporal Convolution Layer (GLU)
     # S: Spitial Graph Convolution Layer (ChebNet)
@@ -238,7 +238,7 @@ class STGCN_ChebNet(nn.Module):
         return x_out
 
 class STGCN_GCN(nn.Module):
-    # STGCN contains 'TSTN TSTN TNTF' structure
+    # STGCN(GCN) contains 'TSTN TSTN TNTF' structure
         
     # T: Temporal Convolution Layer (GLU)
     # S: Spitial Graph Convolution Layer (GCN)
