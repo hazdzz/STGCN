@@ -47,6 +47,7 @@ class TemporalConvLayer(nn.Module):
             self.conv = nn.Conv2d(c_in, c_out, (Kt, 1), 1)
         self.sigmoid = nn.Sigmoid()
         self.relu = nn.ReLU()
+        self.leaky_relu = nn.LeakyReLU()
         self.conv_self = nn.Conv2d(c_in, c_out, (1, 1))
 
     def forward(self, x):   
@@ -69,6 +70,10 @@ class TemporalConvLayer(nn.Module):
             # Temporal Convolution Layer (ReLU)
             x_relu = self.relu(x_conv + x_input)
             x_tc_out = x_relu
+        elif self.act_func == "LeakyReLU":
+            # Temporal Convolution Layer (LeakyReLU)
+            x_leaky_relu = self.leaky_relu(x_conv + x_input)
+            x_tc_out = x_leaky_relu
         elif self.act_func == "Linear":
             # Temporal Convolution Layer (Linear)
             x_linear = x_conv
@@ -78,22 +83,32 @@ class TemporalConvLayer(nn.Module):
         return x_tc_out
 
 class GraphConvolution_ChebNet(nn.Module):
-    def __init__(self, c_in, c_out, Ks, cheb_poly):
+    def __init__(self, c_in, c_out, Ks, cheb_poly, enable_bias):
         super(GraphConvolution_ChebNet, self).__init__()
         self.c_in = c_in
         self.c_out = c_out
         self.Ks = Ks
         self.cheb_poly = cheb_poly
+        self.enable_bias = enable_bias
         self.weight = nn.Parameter(torch.FloatTensor(Ks * c_in, c_out))
-        self.bias = nn.Parameter(torch.FloatTensor(c_out))
+        if self.enable_bias == True:
+            self.bias = nn.Parameter(torch.FloatTensor(c_out))
+        else:
+            self.bias = None
         self.initialize_parameters()
 
     def initialize_parameters(self):
+        #_out_feats_weight = self.weight.size(1)
+        #stdv_w = 1. / math.sqrt(_out_feats_weight)
+        #init.uniform_(self.weight, -stdv_w, stdv_w)
+
         init.xavier_uniform_(self.weight)
-        _out_feats = self.bias.size(0)
-        stdv = 1 / math.sqrt(_out_feats)
+        #init.kaiming_uniform_(self.weight)
+
         if self.bias is not None:
-            init.uniform_(self.bias, -stdv, stdv)
+            _out_feats_bias = self.bias.size(0)
+            stdv_b = 1. / math.sqrt(_out_feats_bias)
+            init.uniform_(self.bias, -stdv_b, stdv_b)
 
     def forward(self, x):
         _, n_vertex, c_in = x.shape
@@ -101,26 +116,39 @@ class GraphConvolution_ChebNet(nn.Module):
         x_first_mul = torch.matmul(x_before_first_mul, self.cheb_poly).reshape(-1, c_in, self.Ks, n_vertex)
         x_before_second_mul = x_first_mul.permute(0, 3, 1, 2).reshape(-1, c_in * self.Ks)
         x_second_mul = torch.matmul(x_before_second_mul, self.weight).reshape(-1, n_vertex, self.c_out)
-        x_gc_chebnet = x_second_mul + self.bias
+        if self.bias is not None:
+            x_gc_chebnet = x_second_mul + self.bias
+        else:
+            x_gc_chebnet = x_second_mul
         return x_gc_chebnet
 
 class GraphConvolution_GCN(nn.Module):
-    def __init__(self, c_in, c_out, Ks, first_order_cheb_poly):
+    def __init__(self, c_in, c_out, Ks, first_order_cheb_poly, enable_bias):
         super(GraphConvolution_GCN, self).__init__()
         self.c_in = c_in
         self.c_out = c_out
-        self.Ks = Ks
+        self.Ks = Ks # Ks = 1
         self.first_order_cheb_poly = first_order_cheb_poly
+        self.enable_bias = enable_bias
         self.weight = nn.Parameter(torch.FloatTensor(Ks * c_in, c_out))
-        self.bias = nn.Parameter(torch.FloatTensor(c_out))
-        self.initialize_parameters
+        if enable_bias == True:
+            self.bias = nn.Parameter(torch.FloatTensor(c_out))
+        else:
+            self.bias = None
+        self.initialize_parameters()
 
     def initialize_parameters(self):
+        #_out_feats_weight = self.weight.size(1)
+        #stdv_w = 1. / math.sqrt(_out_feats_weight)
+        #init.uniform_(self.weight, -stdv_w, stdv_w)
+        
         init.xavier_uniform_(self.weight)
-        _out_feats = self.bias.size(0)
-        stdv = 1 / math.sqrt(_out_feats)
+        #init.kaiming_uniform_(self.weight)
+
         if self.bias is not None:
-            init.uniform_(self.bias, -stdv, stdv)
+            _out_feats_bias = self.bias.size(0)
+            stdv_b = 1. / math.sqrt(_out_feats_bias)
+            init.uniform_(self.bias, -stdv_b, stdv_b)
 
     def forward(self, x):
         _, n_vertex, c_in = x.shape
@@ -128,22 +156,26 @@ class GraphConvolution_GCN(nn.Module):
         x_first_mul = torch.matmul(x_before_first_mul, self.first_order_cheb_poly).reshape(-1, c_in, self.Ks, n_vertex)
         x_before_second_mul = x_first_mul.permute(0, 3, 1, 2).reshape(-1, c_in * self.Ks)
         x_second_mul = torch.matmul(x_before_second_mul, self.weight).reshape(-1, n_vertex, self.c_out)
-        x_gc_gcn = x_second_mul + self.bias
+        if self.bias is not None:
+            x_gc_gcn = x_second_mul + self.bias
+        else:
+            x_gc_gcn = x_second_mul
         return x_gc_gcn
 
 class SpatialGraphConvLayer(nn.Module):
-    def __init__(self, Ks, c_in, c_out, gnn, renorm_laplace):
+    def __init__(self, Ks, c_in, c_out, gnn, spatio_kernel):
         super(SpatialGraphConvLayer, self).__init__()
         self.Ks = Ks
         self.c_in = c_in
         self.c_out = c_out
         self.align = Align(c_in, c_out)
         self.gnn = gnn
-        self.renorm_laplace = renorm_laplace
+        self.spatio_kernel = spatio_kernel
+        self.enbale_bias = True
         if self.gnn == "ChebNet":
-            self.gc_chebnet = GraphConvolution_ChebNet(c_in, c_out, self.Ks, self.renorm_laplace)
+            self.gc_chebnet = GraphConvolution_ChebNet(c_in, c_out, self.Ks, self.spatio_kernel, self.enbale_bias)
         elif self.gnn == "GCN":
-            self.gc_gcn = GraphConvolution_GCN(c_in, c_out, self.Ks, self.renorm_laplace)
+            self.gc_gcn = GraphConvolution_GCN(c_in, c_out, self.Ks, self.spatio_kernel, self.enbale_bias)
         self.relu = nn.ReLU()
 
     def forward(self, x):
@@ -166,10 +198,10 @@ class STConvBlock(nn.Module):
     # T: Temporal Convolution Layer (ReLU)
     # N: Layer Normolization
 
-    def __init__(self, Kt, Ks, n_vertex, channel, gnn, renorm_laplace, drop_prob):
+    def __init__(self, Kt, Ks, n_vertex, channel, gnn, spatio_kernel, drop_prob):
         super(STConvBlock, self).__init__()
         self.tmp_conv1 = TemporalConvLayer(Kt, channel[0], channel[1], "GLU")
-        self.sg_conv = SpatialGraphConvLayer(Ks, channel[1], channel[1], gnn, renorm_laplace)
+        self.sg_conv = SpatialGraphConvLayer(Ks, channel[1], channel[1], gnn, spatio_kernel)
         self.tmp_conv2 = TemporalConvLayer(Kt, channel[1], channel[2], "ReLU")
         self.ln = nn.LayerNorm([n_vertex, channel[2]])
         self.dropout = nn.Dropout(drop_prob)
@@ -221,10 +253,10 @@ class STGCN_ChebNet(nn.Module):
     # T: Temporal Convolution Layer (Sigmoid)
     # F: Fully-Connected Layer
 
-    def __init__(self, Kt, Ks, blocks, T, n_vertex, gnn, cheb_poly, drop_prob):
+    def __init__(self, Kt, Ks, blocks, T, n_vertex, gnn, chebnet_kernel, drop_prob):
         super(STGCN_ChebNet, self).__init__()
-        self.st_block1 = STConvBlock(Kt, Ks, n_vertex, blocks[0], gnn, cheb_poly, drop_prob)
-        self.st_block2 = STConvBlock(Kt, Ks, n_vertex, blocks[1], gnn, cheb_poly, drop_prob)
+        self.st_block1 = STConvBlock(Kt, Ks, n_vertex, blocks[0], gnn, chebnet_kernel, drop_prob)
+        self.st_block2 = STConvBlock(Kt, Ks, n_vertex, blocks[1], gnn, chebnet_kernel, drop_prob)
         Ko = T - len(blocks) * 2 * (Kt - 1)
         if Ko > 1:
             self.output = OutputLayer(blocks[-1][-1], Ko, n_vertex)
@@ -255,10 +287,10 @@ class STGCN_GCN(nn.Module):
     # T: Temporal Convolution Layer (Sigmoid)
     # F: Fully-Connected Layer
 
-    def __init__(self, Kt, Ks, blocks, T, n_vertex, gnn, first_order_cheb_poly, drop_prob):
+    def __init__(self, Kt, Ks, blocks, T, n_vertex, gnn, gcn_kernel, drop_prob):
         super(STGCN_GCN, self).__init__()
-        self.st_block1 = STConvBlock(Kt, Ks, n_vertex, blocks[0], gnn, first_order_cheb_poly, drop_prob)
-        self.st_block2 = STConvBlock(Kt, Ks, n_vertex, blocks[1], gnn, first_order_cheb_poly, drop_prob)
+        self.st_block1 = STConvBlock(Kt, Ks, n_vertex, blocks[0], gnn, gcn_kernel, drop_prob)
+        self.st_block2 = STConvBlock(Kt, Ks, n_vertex, blocks[1], gnn, gcn_kernel, drop_prob)
         Ko = T - len(blocks) * 2 * (Kt - 1)
         if Ko > 1:
             self.output = OutputLayer(blocks[-1][-1], Ko, n_vertex)

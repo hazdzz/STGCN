@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.sparse.linalg import eigs
+import scipy
 import torch
 
 def scaled_laplacian(W):
@@ -8,7 +8,7 @@ def scaled_laplacian(W):
     # \widetilde L = 2 * L / lambda_max - I_n
 
     n_vertex = W.shape[0]
-    D = np.sum(W, axis = 1)
+    D = np.sum(W, axis=1)
     L = np.diag(D) - W
 
     for i in range(n_vertex):
@@ -16,14 +16,14 @@ def scaled_laplacian(W):
             if (D[i] > 0) and (D[j] > 0):
                 L[i, j] = L[i, j] / np.sqrt(D[i] * D[j])
     
-    lambda_max = eigs(L, k = 1, which = 'LR')[0][0].real
+    lambda_max = scipy.sparse.linalg.eigs(L, k = 1, which = 'LR')[0][0].real
     #lambda_max = np.linalg.eigvals(L).max().real
  
     widetilde_L = 2 * L / lambda_max - np.identity(n_vertex)
 
     return widetilde_L
 
-def cheb_poly_approx(widetilde_L, Ks):
+def chebnet_kernel(widetilde_L, Ks):
     # The Chebyshev Polynomials are recursively defined as 
     # T_k(x) = 2 * x * T_{k - 1}(x) - T_{k - 2}(x)
     # T_0(x) = 1
@@ -44,14 +44,18 @@ def cheb_poly_approx(widetilde_L, Ks):
     else:
         raise ValueError(f'ERROR: the size of spatial kernel must be greater than 1, but received "{Ks}".')
 
-def first_order_cheb_poly_approx(W):
+def gcn_kernel(W):
     n_vertex = W.shape[0]
     widetilde_W = W + np.identity(n_vertex)
-    D = np.sum(widetilde_W, axis = 1)
-    sinvD = np.sqrt(np.mat(np.diag(D)).I)
+    row_sum = np.sum(widetilde_W, axis=1)
+    widetilde_D_inv_sqrt = np.mat(np.diag(np.power(row_sum, -0.5)))
 
     # I_n + D^{-1/2} * W * D^{-1/2}
-    return np.identity(n_vertex) + sinvD * widetilde_W * sinvD
+    #return np.identity(n_vertex) + D_inv_sqrt * W * D_inv_sqrt
+
+    # Renormalized trick
+    # \widetildeD^{-1/2} * \widetildeW * \widetildeD^{-1/2}
+    return widetilde_D_inv_sqrt * widetilde_W * widetilde_D_inv_sqrt
 
 def evaluate_model(model, loss, data_iter):
     model.eval()
@@ -67,15 +71,16 @@ def evaluate_model(model, loss, data_iter):
 def evaluate_metric(model, data_iter, scaler):
     model.eval()
     with torch.no_grad():
-        mae, mape, mse = [], [], []
+        mae, mse, mape = [], [], []
         for x, y in data_iter:
             y = scaler.inverse_transform(y.cpu().numpy()).reshape(-1)
             y_pred = scaler.inverse_transform(model(x).view(len(x), -1).cpu().numpy()).reshape(-1)
             d = np.abs(y - y_pred)
             mae += d.tolist()
-            mape += (d / y).tolist()
             mse += (d ** 2).tolist()
+            mape += (d / y).tolist()
         MAE = np.array(mae).mean()
-        MAPE = np.array(mape).mean()
         RMSE = np.sqrt(np.array(mse).mean())
-        return MAE, MAPE, RMSE
+        MAPE = np.array(mape).mean()
+
+        return MAE, RMSE, MAPE
