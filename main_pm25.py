@@ -37,9 +37,9 @@ parser.add_argument('--opt', type=str, default='AdamW',
                     help='optimizer, default as AdamW')
 parser.add_argument('--clip_value', type=int, default=None,
                     help='clip value for gradient clipping, default as None')
-parser.add_argument('--data_path', type=str, default='./data/pm25/non_st_cal/pm25_ksh.csv',
+parser.add_argument('--data_path', type=str, default='./data/pm25/non_st_cal/pm25_khs.csv',
                     help='the path of PM2.5 data')
-parser.add_argument('--wam_path', type=str, default='./data/pm25/non_st_cal/wam_ksh.csv',
+parser.add_argument('--wam_path', type=str, default='./data/pm25/non_st_cal/wam_khs.csv',
                     help='the path of weighted adjacency matrix')
 parser.add_argument('--model_stgcn_chebnet_save_path', type=str, default='./model/save/stgcn_chebnet_pm25.pt',
                     help='the save path of model STGCN(ChebNet) for PM2.5')
