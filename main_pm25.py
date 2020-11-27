@@ -33,7 +33,7 @@ parser.add_argument('--gnn', type=str, default='GCN',
 parser.add_argument('--Kt', type=int, default=3,
                     help='the kernel size of causal convolution, default as 3')
 parser.add_argument('--Ks', type=int, default=3,
-                    help='the kernel size of graph convolution with Chebshev Polynomials approximation(ChebNet), defulat as 3, for first-order approximation(GCN), Ks must be 1')
+                    help='the kernel size of graph convolution with Chebshev Polynomials approximation(ChebNet), defulat as 3')
 parser.add_argument('--opt', type=str, default='AdamW',
                     help='optimizer, default as AdamW')
 parser.add_argument('--clip_value', type=int, default=None,
@@ -183,7 +183,8 @@ def train():
         if val_loss < min_val_loss:
             min_val_loss = val_loss
             torch.save(model.state_dict(), model_save_path)
-        print('Epoch: {:03d} | Lr: {:.20f} |Train loss: {:.6f} | Val loss: {:.6f} | GPU occupy: {:.2f} MiB'.format(epoch, optimizer.param_groups[0]['lr'], l_sum / n, val_loss, gpu_mem_alloc))
+        print('Epoch: {:03d} | Lr: {:.20f} |Train loss: {:.6f} | Val loss: {:.6f} | GPU occupy: {:.2f} MiB'.\
+            format(epoch, optimizer.param_groups[0]['lr'], l_sum / n, val_loss, gpu_mem_alloc))
 
         # clear lists to track next epoch
         valid_losses = []
