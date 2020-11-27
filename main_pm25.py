@@ -144,7 +144,7 @@ else:
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.999)
 clip_value = args.clip_value
 
-def gradient_clip():
+def gradient_clipping():
     utils.clip_grad_norm_(model.parameters(), clip_value)
 
 def val():
@@ -170,7 +170,7 @@ def train():
             optimizer.zero_grad()
             l.backward()
             if clip_value is not None:
-                gradient_clip()
+                gradient_clipping()
             optimizer.step()
             scheduler.step()
             l_sum += l.item() * y.shape[0]
