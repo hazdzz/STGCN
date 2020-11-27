@@ -48,7 +48,6 @@ class TemporalConvLayer(nn.Module):
         self.sigmoid = nn.Sigmoid()
         self.relu = nn.ReLU()
         self.leaky_relu = nn.LeakyReLU()
-        self.conv_self = nn.Conv2d(c_in, c_out, (1, 1))
 
     def forward(self, x):   
         x_input = self.align(x)[:, :, self.Kt - 1:, :]
