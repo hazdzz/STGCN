@@ -9,6 +9,7 @@ from sklearn.preprocessing import StandardScaler
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.nn.utils as utils
 import torch.optim as optim
 
 from torchsummary import summary
@@ -143,6 +144,9 @@ else:
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.999)
 clip_value = args.clip_value
 
+def gradient_clip():
+    utils.clip_grad_norm_(model.parameters(), clip_value)
+
 def val():
     model.eval()
     l_sum, n = 0.0, 0
@@ -166,7 +170,7 @@ def train():
             optimizer.zero_grad()
             l.backward()
             if clip_value is not None:
-                nn.utils.clip_grad_norm_(model.parameters(), clip_value)
+                gradient_clip()
             optimizer.step()
             scheduler.step()
             l_sum += l.item() * y.shape[0]
@@ -197,7 +201,7 @@ def test():
     if gnn == "ChebNet":
         best_model = stgcn.STGCN_ChebNet(Kt, Ks, blocks, n_his, n_vertex, gnn, chebnet_kernel, drop_prob).to(device)
     elif gnn == "GCN":
-        best_model = stgcn.STGCN_GCN(Kt, 1, blocks, n_his, n_vertex, gnn, gcn_kernel, drop_prob).to(device)
+        best_model = stgcn.STGCN_GCN(Kt, Ks, blocks, n_his, n_vertex, gnn, gcn_kernel, drop_prob).to(device)
     best_model.load_state_dict(torch.load(model_save_path))
     test_MSE = utils.evaluate_model(best_model, loss, test_iter)
     print('Test loss {:.6f}'.format(test_MSE))
