@@ -54,11 +54,6 @@ if args.enable_cuda and torch.cuda.is_available():
 else:
     device = torch.device("cpu")
 
-if (args.gnn != "ChebNet") or (args.gnn != "GCN"):
-    gnn = args.gnn
-else:
-    raise ValueError(f'ERROR: "{args.gnn}" is undefined.')
-
 # Kt is the kernel size of casual convolution, default as 3
 Kt = args.Kt
 # blocks: settings of channel size in st_conv_blocks / bottleneck design
@@ -83,6 +78,11 @@ if n_vertex_v != n_vertex_w:
     raise ValueError(f'ERROR: number of vertices in dataset is not equal to number of vertices in weighted adjacency matrix.')
 else:
     n_vertex = n_vertex_v
+
+if (args.gnn != "ChebNet") and (args.gnn != "GCN"):
+    raise ValueError(f'ERROR: "{args.gnn}" is not defined.')
+else:
+    gnn = args.gnn
 
 drop_prob = 0.1
 if gnn == "ChebNet":
