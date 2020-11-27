@@ -22,17 +22,17 @@ parser.add_argument('--enable_cuda', type=bool, default='True',
 parser.add_argument('--window_size', type=int, default=20,
                     help='sampling period (mins)')
 parser.add_argument('--t_pred', type=int, default=60,
-                    help='the period of prediction')
+                    help='the period of prediction (mins)')
 parser.add_argument('--batch_size', type=int, default=32,
                     help='batch size, defualt as 32')
 parser.add_argument('--epochs', type=int, default=100,
                     help='epochs, default as 100')
 parser.add_argument('--gnn', type=str, default='GCN',
-                    help='the type of GNN, default as ChebNet, we offer ChebNet, GCN, SGC(undone), and GFNN(undone)')
+                    help='the type of GNN, default as ChebNet, GCN as alternative')
 parser.add_argument('--Kt', type=int, default=3,
                     help='the kernel size of causal convolution, default as 3')
 parser.add_argument('--Ks', type=int, default=3,
-                    help='the kernel size of graph convolution with Chebshev Polynomials approximation(ChebNet), defulat as 3, for first-order approximation(GCN), Ks = 1')
+                    help='the kernel size of graph convolution with Chebshev Polynomials approximation(ChebNet), defulat as 3, for first-order approximation(GCN), Ks must be 1')
 parser.add_argument('--opt', type=str, default='AdamW',
                     help='optimizer, default as AdamW')
 parser.add_argument('--clip_value', type=int, default=None,
@@ -97,7 +97,7 @@ elif gnn == "GCN":
     # Ks of GCN must be 1
     Ks = 1
     gcn_kernel = torch.from_numpy(utils.gcn_kernel(W)).float().to(device)
-    model_stgcn_gcn = stgcn.STGCN_GCN(Kt, 1, blocks, n_his, n_vertex, gnn, gcn_kernel, drop_prob).to(device)
+    model_stgcn_gcn = stgcn.STGCN_GCN(Kt, Ks, blocks, n_his, n_vertex, gnn, gcn_kernel, drop_prob).to(device)
     model_stgcn_gcn_save_path = args.model_stgcn_gcn_save_path
 
 train, val, test = data_loader.load_data(data_path, len_train, len_val)
@@ -112,22 +112,21 @@ x_test, y_test = data_loader.data_transform(test, n_his, n_pred, day_slot, devic
 
 bs = args.batch_size
 train_data = torch.utils.data.TensorDataset(x_train, y_train)
-train_iter = torch.utils.data.DataLoader(dataset=train_data, batch_size=bs, shuffle = False)
+train_iter = torch.utils.data.DataLoader(dataset=train_data, batch_size=bs, shuffle=False)
 val_data = torch.utils.data.TensorDataset(x_val, y_val)
-val_iter = torch.utils.data.DataLoader(dataset=val_data, batch_size=bs, shuffle = False)
+val_iter = torch.utils.data.DataLoader(dataset=val_data, batch_size=bs, shuffle=False)
 test_data = torch.utils.data.TensorDataset(x_test, y_test)
-test_iter = torch.utils.data.DataLoader(dataset=test_data, batch_size=bs, shuffle = False)
+test_iter = torch.utils.data.DataLoader(dataset=test_data, batch_size=bs, shuffle=False)
 
 loss = nn.MSELoss()
+epochs = args.epochs
 if gnn == "ChebNet":
-    epochs = args.epochs
     model = model_stgcn_chebnet
     model_save_path = model_stgcn_chebnet_save_path
     model_stats = summary(model_stgcn_chebnet, (1, n_his, n_vertex))
     early_stopping = pytorchtools.EarlyStopping(patience=20, path="./model/checkpoint/cp_stgcn_chebnet_pm25.pt",verbose=True)
     learning_rate = 5e-4
 elif gnn == "GCN":
-    epochs = args.epochs
     model = model_stgcn_gcn
     model_save_path = model_stgcn_gcn_save_path
     model_stats = summary(model_stgcn_gcn, (1, n_his, n_vertex))
