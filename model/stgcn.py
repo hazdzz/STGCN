@@ -93,7 +93,7 @@ class GraphConvolution_CPA(nn.Module):
         if self.enable_bias == True:
             self.bias = nn.Parameter(torch.FloatTensor(c_out))
         else:
-            self.bias = None
+            self.register_parameter('bias', None)
         self.initialize_parameters()
 
     def initialize_parameters(self):
@@ -118,18 +118,17 @@ class GraphConvolution_CPA(nn.Module):
         return x_gc_cpa
 
 class GraphConvolution_LWL(nn.Module):
-    def __init__(self, c_in, c_out, Ks, gc_lwl_kernel, enable_bias):
+    def __init__(self, c_in, c_out, gc_lwl_kernel, enable_bias):
         super(GraphConvolution_LWL, self).__init__()
         self.c_in = c_in
         self.c_out = c_out
-        self.Ks = Ks # Ks = 1
-        self.gc_lwl_kerne = gc_lwl_kerne
+        self.gc_lwl_kernel = gc_lwl_kernel
         self.enable_bias = enable_bias
-        self.weight = nn.Parameter(torch.FloatTensor(Ks * c_in, c_out))
+        self.weight = nn.Parameter(torch.FloatTensor(c_in, c_out))
         if enable_bias == True:
             self.bias = nn.Parameter(torch.FloatTensor(c_out))
         else:
-            self.bias = None
+            self.register_parameter('bias', None)
         self.initialize_parameters()
 
     def initialize_parameters(self):
@@ -147,10 +146,21 @@ class GraphConvolution_LWL(nn.Module):
 
     def forward(self, x):
         _, n_vertex, c_in = x.shape
-        x_before_first_mul = x.permute(0, 2, 1).reshape(-1, n_vertex)
-        x_first_mul = torch.matmul(x_before_first_mul, self.gc_lwl_kerne).reshape(-1, c_in, self.Ks, n_vertex)
-        x_before_second_mul = x_first_mul.permute(0, 3, 1, 2).reshape(-1, c_in * self.Ks)
-        x_second_mul = torch.matmul(x_before_second_mul, self.weight).reshape(-1, n_vertex, self.c_out)
+
+        # The STGCN author's way
+        #x_before_first_mul = x.permute(0, 2, 1).reshape(-1, n_vertex)
+        #x_first_mul = torch.matmul(x_before_first_mul, self.gc_lwl_kernel).reshape(-1, c_in, 1, n_vertex)
+        #x_before_second_mul = x_first_mul.permute(0, 3, 1, 2).reshape(-1, c_in)
+        #x_second_mul = torch.matmul(x_before_second_mul, self.weight).reshape(-1, n_vertex, self.c_out)
+
+        # There are the code from GraphConvolution of GCN
+        #support = torch.mm(input, self.weight)
+        #output = torch.spmm(adj, support)
+        # The GCN author's way
+        x_before_first_mul = x.reshape(-1, c_in)
+        x_first_mul = torch.mm(x_before_first_mul, self.weight).reshape(n_vertex, -1)
+        x_second_mul = torch.spmm(self.gc_lwl_kernel, x_first_mul).reshape(-1, self.c_out)
+
         if self.bias is not None:
             x_gc_lwl = x_second_mul + self.bias
         else:
@@ -170,7 +180,7 @@ class SpatialGraphConvLayer(nn.Module):
         if self.gc == "gc_cpa":
             self.gc_cpa = GraphConvolution_CPA(c_in, c_out, self.Ks, self.graph_conv_kernel, self.enbale_bias)
         elif self.gc == "gc_lwl":
-            self.gc_lwl = GraphConvolution_LWL(c_in, c_out, self.Ks, self.graph_conv_kernel, self.enbale_bias)
+            self.gc_lwl = GraphConvolution_LWL(c_in, c_out, self.graph_conv_kernel, self.enbale_bias)
         self.relu = nn.ReLU()
 
     def forward(self, x):
