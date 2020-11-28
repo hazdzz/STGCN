@@ -13,4 +13,4 @@ https://arxiv.org/abs/1709.04875
 According to the paper, STGCN could be applied into general spatio-temporal structured sequence forecasting scenarios. We find it could be used for PM2.5 prediction.
 
 ## About GNN in STGCN
-In my opinion, any GNN which be used for nodes classification could be implemented in STGCN. That's why I'm tring to implemented SGC and GFNN in STGCN. If you are interested in my experiments, please move to https://github.com/hazdzz/STGNN.
+If you are interested in how different graph convolutions may effect the result of STGCN, please move into https://github.com/hazdzz/STGCN_graphconv_exp.
