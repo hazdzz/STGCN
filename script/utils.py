@@ -23,7 +23,7 @@ def scaled_laplacian(W):
 
     return widetilde_L
 
-def chebnet_kernel(widetilde_L, Ks):
+def gc_cpa_kernel(widetilde_L, Ks):
     # The Chebyshev Polynomials are recursively defined as 
     # T_k(x) = 2 * x * T_{k - 1}(x) - T_{k - 2}(x)
     # T_0(x) = 1
@@ -44,14 +44,11 @@ def chebnet_kernel(widetilde_L, Ks):
     else:
         raise ValueError(f'ERROR: the size of spatial kernel must be greater than 1, but received "{Ks}".')
 
-def gcn_kernel(W):
+def gc_lwl_kernel(W):
     n_vertex = W.shape[0]
     widetilde_W = W + np.identity(n_vertex)
     row_sum = np.sum(widetilde_W, axis=1)
     widetilde_D_inv_sqrt = np.mat(np.diag(np.power(row_sum, -0.5)))
-
-    # I_n + D^{-1/2} * W * D^{-1/2}
-    #return np.identity(n_vertex) + D_inv_sqrt * W * D_inv_sqrt
 
     # Renormalized trick
     # \widetildeD^{-1/2} * \widetildeW * \widetildeD^{-1/2}

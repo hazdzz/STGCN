@@ -81,9 +81,9 @@ class TemporalConvLayer(nn.Module):
             raise ValueError(f'ERROR: activation function "{act_func}" is not defined.')
         return x_tc_out
 
-class GraphConvolution_ChebNet(nn.Module):
+class GraphConvolution_CPA(nn.Module):
     def __init__(self, c_in, c_out, Ks, cheb_poly, enable_bias):
-        super(GraphConvolution_ChebNet, self).__init__()
+        super(GraphConvolution_CPA, self).__init__()
         self.c_in = c_in
         self.c_out = c_out
         self.Ks = Ks
@@ -116,14 +116,14 @@ class GraphConvolution_ChebNet(nn.Module):
         x_before_second_mul = x_first_mul.permute(0, 3, 1, 2).reshape(-1, c_in * self.Ks)
         x_second_mul = torch.matmul(x_before_second_mul, self.weight).reshape(-1, n_vertex, self.c_out)
         if self.bias is not None:
-            x_gc_chebnet = x_second_mul + self.bias
+            x_gc_cpa = x_second_mul + self.bias
         else:
-            x_gc_chebnet = x_second_mul
-        return x_gc_chebnet
+            x_gc_cpa = x_second_mul
+        return x_gc_cpa
 
-class GraphConvolution_GCN(nn.Module):
+class GraphConvolution_LWL(nn.Module):
     def __init__(self, c_in, c_out, Ks, first_order_cheb_poly, enable_bias):
-        super(GraphConvolution_GCN, self).__init__()
+        super(GraphConvolution_LWL, self).__init__()
         self.c_in = c_in
         self.c_out = c_out
         self.Ks = Ks # Ks = 1
@@ -156,35 +156,35 @@ class GraphConvolution_GCN(nn.Module):
         x_before_second_mul = x_first_mul.permute(0, 3, 1, 2).reshape(-1, c_in * self.Ks)
         x_second_mul = torch.matmul(x_before_second_mul, self.weight).reshape(-1, n_vertex, self.c_out)
         if self.bias is not None:
-            x_gc_gcn = x_second_mul + self.bias
+            x_gc_lwl = x_second_mul + self.bias
         else:
-            x_gc_gcn = x_second_mul
-        return x_gc_gcn
+            x_gc_lwl = x_second_mul
+        return x_gc_lwl
 
 class SpatialGraphConvLayer(nn.Module):
-    def __init__(self, Ks, c_in, c_out, gnn, spatio_kernel):
+    def __init__(self, Ks, c_in, c_out, gc, spatio_kernel):
         super(SpatialGraphConvLayer, self).__init__()
         self.Ks = Ks
         self.c_in = c_in
         self.c_out = c_out
         self.align = Align(c_in, c_out)
-        self.gnn = gnn
+        self.gc = gc
         self.spatio_kernel = spatio_kernel
         self.enbale_bias = True
-        if self.gnn == "ChebNet":
-            self.gc_chebnet = GraphConvolution_ChebNet(c_in, c_out, self.Ks, self.spatio_kernel, self.enbale_bias)
-        elif self.gnn == "GCN":
-            self.gc_gcn = GraphConvolution_GCN(c_in, c_out, self.Ks, self.spatio_kernel, self.enbale_bias)
+        if self.gc == "gc_cpa":
+            self.gc_cpa = GraphConvolution_CPA(c_in, c_out, self.Ks, self.spatio_kernel, self.enbale_bias)
+        elif self.gc == "gc_lwl":
+            self.gc_lwl = GraphConvolution_LWL(c_in, c_out, self.Ks, self.spatio_kernel, self.enbale_bias)
         self.relu = nn.ReLU()
 
     def forward(self, x):
         batch_size, c_in, T, n_vertex = x.shape
         x_input = self.align(x)
         x_gc_input = x.permute(0, 2, 3, 1).reshape(-1, n_vertex, c_in)
-        if self.gnn == "ChebNet":
-            x_gc_output = self.gc_chebnet(x_gc_input)
-        elif self.gnn == "GCN":
-            x_gc_output = self.gc_gcn(x_gc_input)
+        if self.gc == "gc_cpa":
+            x_gc_output = self.gc_cpa(x_gc_input)
+        elif self.gc == "gc_lwl":
+            x_gc_output = self.gc_lwl(x_gc_input)
         x_sgc = x_gc_output.reshape(-1, T, n_vertex, self.c_out).permute(0, 3, 1, 2).contiguous()
         x_sgc_with_rc = x_sgc[:, : self.c_out, :, :] + x_input.contiguous()
         x_sgc_output = self.relu(x_sgc_with_rc)
@@ -193,14 +193,14 @@ class SpatialGraphConvLayer(nn.Module):
 class STConvBlock(nn.Module):
     # each STConvBlock contains 'TSTN' structure
     # T: Temporal Convolution Layer (GLU)
-    # S: Spitial Graph Convolution Layer (ChebNet Graph Convolution or Graph Convolution)
+    # S: Spitial Graph Convolution Layer (GC_CPA or GC_LWL)
     # T: Temporal Convolution Layer (ReLU)
     # N: Layer Normolization
 
-    def __init__(self, Kt, Ks, n_vertex, channel, gnn, spatio_kernel, drop_prob):
+    def __init__(self, Kt, Ks, n_vertex, channel, gc, spatio_kernel, drop_prob):
         super(STConvBlock, self).__init__()
         self.tmp_conv1 = TemporalConvLayer(Kt, channel[0], channel[1], "GLU")
-        self.sg_conv = SpatialGraphConvLayer(Ks, channel[1], channel[1], gnn, spatio_kernel)
+        self.sg_conv = SpatialGraphConvLayer(Ks, channel[1], channel[1], gc, spatio_kernel)
         self.tmp_conv2 = TemporalConvLayer(Kt, channel[1], channel[2], "ReLU")
         self.ln = nn.LayerNorm([n_vertex, channel[2]])
         self.dropout = nn.Dropout(drop_prob)
@@ -234,16 +234,16 @@ class OutputLayer(nn.Module):
         x_fc = self.fc(x_tc2)
         return x_fc
 
-class STGCN_ChebNet(nn.Module):
-    # STGCN(ChebNet) contains 'TSTN TSTN TNTF' structure
+class STGCN_GC_CPA(nn.Module):
+    # STGCN(GC_CPA) contains 'TSTN TSTN TNTF' structure
         
     # T: Temporal Convolution Layer (GLU)
-    # S: Spitial Graph Convolution Layer (ChebNet)
+    # S: Spitial Graph Convolution Layer (CPA)
     # T: Temporal Convolution Layer (ReLU)
     # N: Layer Normolization
 
     # T: Temporal Convolution Layer (GLU)
-    # S: Spitial Graph Convolution Layer (ChebNet)
+    # S: Spitial Graph Convolution Layer (CPA)
     # T: Temporal Convolution Layer (ReLU)
     # N: Layer Normolization
 
@@ -252,10 +252,10 @@ class STGCN_ChebNet(nn.Module):
     # T: Temporal Convolution Layer (Sigmoid)
     # F: Fully-Connected Layer
 
-    def __init__(self, Kt, Ks, blocks, T, n_vertex, gnn, chebnet_kernel, drop_prob):
-        super(STGCN_ChebNet, self).__init__()
-        self.st_block1 = STConvBlock(Kt, Ks, n_vertex, blocks[0], gnn, chebnet_kernel, drop_prob)
-        self.st_block2 = STConvBlock(Kt, Ks, n_vertex, blocks[1], gnn, chebnet_kernel, drop_prob)
+    def __init__(self, Kt, Ks, blocks, T, n_vertex, gc, gc_cpa_kernel, drop_prob):
+        super(STGCN_GC_CPA, self).__init__()
+        self.st_block1 = STConvBlock(Kt, Ks, n_vertex, blocks[0], gc, gc_cpa_kernel, drop_prob)
+        self.st_block2 = STConvBlock(Kt, Ks, n_vertex, blocks[1], gc, gc_cpa_kernel, drop_prob)
         Ko = T - len(blocks) * 2 * (Kt - 1)
         if Ko > 1:
             self.output = OutputLayer(blocks[-1][-1], Ko, n_vertex)
@@ -268,16 +268,16 @@ class STGCN_ChebNet(nn.Module):
         x_out = self.output(x_stb2)
         return x_out
 
-class STGCN_GCN(nn.Module):
-    # STGCN(GCN) contains 'TSTN TSTN TNTF' structure
+class STGCN_GC_LWL(nn.Module):
+    # STGCN(GC_LWL) contains 'TSTN TSTN TNTF' structure
         
     # T: Temporal Convolution Layer (GLU)
-    # S: Spitial Graph Convolution Layer (GCN)
+    # S: Spitial Graph Convolution Layer (LWL)
     # T: Temporal Convolution Layer (ReLU)
     # N: Layer Normolization
 
     # T: Temporal Convolution Layer (GLU)
-    # S: Spitial Graph Convolution Layer (GCN)
+    # S: Spitial Graph Convolution Layer (LWL)
     # T: Temporal Convolution Layer (ReLU)
     # N: Layer Normolization
 
@@ -286,10 +286,10 @@ class STGCN_GCN(nn.Module):
     # T: Temporal Convolution Layer (Sigmoid)
     # F: Fully-Connected Layer
 
-    def __init__(self, Kt, Ks, blocks, T, n_vertex, gnn, gcn_kernel, drop_prob):
-        super(STGCN_GCN, self).__init__()
-        self.st_block1 = STConvBlock(Kt, Ks, n_vertex, blocks[0], gnn, gcn_kernel, drop_prob)
-        self.st_block2 = STConvBlock(Kt, Ks, n_vertex, blocks[1], gnn, gcn_kernel, drop_prob)
+    def __init__(self, Kt, Ks, blocks, T, n_vertex, gc, gc_lwl_kernel, drop_prob):
+        super(STGCN_GC_LWL, self).__init__()
+        self.st_block1 = STConvBlock(Kt, Ks, n_vertex, blocks[0], gc, gc_lwl_kernel, drop_prob)
+        self.st_block2 = STConvBlock(Kt, Ks, n_vertex, blocks[1], gc, gc_lwl_kernel, drop_prob)
         Ko = T - len(blocks) * 2 * (Kt - 1)
         if Ko > 1:
             self.output = OutputLayer(blocks[-1][-1], Ko, n_vertex)

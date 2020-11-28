@@ -28,12 +28,13 @@ parser.add_argument('--batch_size', type=int, default=32,
                     help='batch size, defualt as 32')
 parser.add_argument('--epochs', type=int, default=100,
                     help='epochs, default as 100')
-parser.add_argument('--gnn', type=str, default='GCN',
-                    help='the type of GNN, default as ChebNet, GCN as alternative')
+parser.add_argument('--gc', type=str, default='gc_lwl',
+                    help='the type of gc, default as gc_cpa (Chebyshev Polynomials Approximation), \
+                    gc_lwl (layer-wise linear) as alternative')
 parser.add_argument('--Kt', type=int, default=3,
                     help='the kernel size of causal convolution, default as 3')
 parser.add_argument('--Ks', type=int, default=3,
-                    help='the kernel size of graph convolution with Chebshev Polynomials approximation(ChebNet), defulat as 3')
+                    help='the kernel size of graph convolution with Chebshev Polynomials approximation, defulat as 3')
 parser.add_argument('--opt', type=str, default='AdamW',
                     help='optimizer, default as AdamW')
 parser.add_argument('--clip_value', type=int, default=None,
@@ -42,10 +43,10 @@ parser.add_argument('--data_path', type=str, default='./data/pm25/non_st_cal/pm2
                     help='the path of PM2.5 data')
 parser.add_argument('--wam_path', type=str, default='./data/pm25/non_st_cal/wam_khs.csv',
                     help='the path of weighted adjacency matrix')
-parser.add_argument('--model_stgcn_chebnet_save_path', type=str, default='./model/save/stgcn_chebnet_pm25.pt',
-                    help='the save path of model STGCN(ChebNet) for PM2.5')
-parser.add_argument('--model_stgcn_gcn_save_path', type=str, default='./model/save/stgcn_gcn_pm25.pt',
-                    help='the save path of model STGCN(GCN) for PM2.5')
+parser.add_argument('--model_stgcn_gc_cpa_save_path', type=str, default='./model/save/stgcn_gc_cpa_pm25.pt',
+                    help='the save path of model STGCN(gc_cpa) for PM2.5')
+parser.add_argument('--model_stgcn_gc_lwl_save_path', type=str, default='./model/save/stgcn_gc_lwl_pm25.pt',
+                    help='the save path of model STGCN(gc_lwl) for PM2.5')
 args = parser.parse_args()
 print('Training configs: {}'.format(args))
 
@@ -80,26 +81,26 @@ if n_vertex_v != n_vertex_w:
 else:
     n_vertex = n_vertex_v
 
-if (args.gnn != "ChebNet") and (args.gnn != "GCN"):
-    raise ValueError(f'ERROR: "{args.gnn}" is not defined.')
+if (args.gc != "gc_cpa") and (args.gc != "gc_lwl"):
+    raise ValueError(f'ERROR: "{args.gc}" is not defined.')
 else:
-    gnn = args.gnn
+    gc = args.gc
 
 drop_prob = 0.1
-if gnn == "ChebNet":
-    # Ks is the kernel size of ChebNet(Chebyshev Polynomials approximation), default as 3
+if gc == "gc_cpa":
+    # Ks is the kernel size of Chebyshev Polynomials Approximation, default as 3
     Ks = args.Ks
     widetilde_L = utils.scaled_laplacian(W)
-    chebnet_kernel = torch.from_numpy(utils.chebnet_kernel(widetilde_L, Ks)).float().to(device)
-    model_stgcn_chebnet = stgcn.STGCN_ChebNet(Kt, Ks, blocks, n_his, n_vertex, gnn, chebnet_kernel, drop_prob).to(device)
-    model_stgcn_chebnet_save_path = args.model_stgcn_chebnet_save_path
-elif gnn == "GCN":
-    # Ks is the kernel size of GCN(First Order Chebyshev Polynomials approximation)
-    # Ks of GCN must be 1
+    gc_cpa_kernel = torch.from_numpy(utils.gc_cpa_kernel(widetilde_L, Ks)).float().to(device)
+    model_stgcn_gc_cpa = stgcn.STGCN_GC_CPA(Kt, Ks, blocks, n_his, n_vertex, gc, gc_cpa_kernel, drop_prob).to(device)
+    model_stgcn_gc_cpa_save_path = args.model_stgcn_gc_cpa_save_path
+elif gc == "gc_lwl":
+    # Ks is the kernel size of Layer-Wise Linear
+    # Ks of Layer-Wise Linear must be 1
     Ks = 1
-    gcn_kernel = torch.from_numpy(utils.gcn_kernel(W)).float().to(device)
-    model_stgcn_gcn = stgcn.STGCN_GCN(Kt, Ks, blocks, n_his, n_vertex, gnn, gcn_kernel, drop_prob).to(device)
-    model_stgcn_gcn_save_path = args.model_stgcn_gcn_save_path
+    gc_lwl_kernel = torch.from_numpy(utils.gc_lwl_kernel(W)).float().to(device)
+    model_stgcn_gc_lwl = stgcn.STGCN_GC_LWL(Kt, Ks, blocks, n_his, n_vertex, gc, gc_lwl_kernel, drop_prob).to(device)
+    model_stgcn_gc_lwl_save_path = args.model_stgcn_gc_lwl_save_path
 
 train, val, test = data_loader.load_data(data_path, len_train, len_val)
 scaler = StandardScaler()
@@ -121,17 +122,17 @@ test_iter = torch.utils.data.DataLoader(dataset=test_data, batch_size=bs, shuffl
 
 loss = nn.MSELoss()
 epochs = args.epochs
-if gnn == "ChebNet":
-    model = model_stgcn_chebnet
-    model_save_path = model_stgcn_chebnet_save_path
-    model_stats = summary(model_stgcn_chebnet, (1, n_his, n_vertex))
-    early_stopping = pytorchtools.EarlyStopping(patience=20, path="./model/checkpoint/cp_stgcn_chebnet_pm25.pt",verbose=True)
+if gc == "gc_cpa":
+    model = model_stgcn_gc_cpa
+    model_save_path = model_stgcn_gc_cpa_save_path
+    model_stats = summary(model_stgcn_gc_cpa, (1, n_his, n_vertex))
+    early_stopping = pytorchtools.EarlyStopping(patience=20, path="./model/checkpoint/cp_stgcn_gc_cpa_pm25.pt",verbose=True)
     learning_rate = 5e-4
-elif gnn == "GCN":
-    model = model_stgcn_gcn
-    model_save_path = model_stgcn_gcn_save_path
-    model_stats = summary(model_stgcn_gcn, (1, n_his, n_vertex))
-    early_stopping = pytorchtools.EarlyStopping(patience=20, path="./model/checkpoint/cp_stgcn_gcn_pm25.pt",verbose=True)
+elif gc == "gc_lwl":
+    model = model_stgcn_gc_lwl
+    model_save_path = model_stgcn_gc_lwl_save_path
+    model_stats = summary(model_stgcn_gc_lwl, (1, n_his, n_vertex))
+    early_stopping = pytorchtools.EarlyStopping(patience=20, path="./model/checkpoint/cp_stgcn_gc_lwl_pm25.pt",verbose=True)
     learning_rate = 1e-4
 if args.opt == "RMSProp":
     optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
@@ -199,10 +200,10 @@ def train():
     print('\nTraining finished.\n')
     
 def test():
-    if gnn == "ChebNet":
-        best_model = stgcn.STGCN_ChebNet(Kt, Ks, blocks, n_his, n_vertex, gnn, chebnet_kernel, drop_prob).to(device)
-    elif gnn == "GCN":
-        best_model = stgcn.STGCN_GCN(Kt, Ks, blocks, n_his, n_vertex, gnn, gcn_kernel, drop_prob).to(device)
+    if gc == "gc_cpa":
+        best_model = stgcn.STGCN_GC_CPA(Kt, Ks, blocks, n_his, n_vertex, gc, gc_cpa_kernel, drop_prob).to(device)
+    elif gc == "gc_lwl":
+        best_model = stgcn.STGCN_GC_LWL(Kt, Ks, blocks, n_his, n_vertex, gc, gc_lwl_kernel, drop_prob).to(device)
     best_model.load_state_dict(torch.load(model_save_path))
     test_MSE = utils.evaluate_model(best_model, loss, test_iter)
     print('Test loss {:.6f}'.format(test_MSE))
