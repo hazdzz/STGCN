@@ -82,12 +82,12 @@ class TemporalConvLayer(nn.Module):
         return x_tc_out
 
 class GraphConvolution_CPA(nn.Module):
-    def __init__(self, c_in, c_out, Ks, cheb_poly, enable_bias):
+    def __init__(self, c_in, c_out, Ks, gc_cpa_kernel, enable_bias):
         super(GraphConvolution_CPA, self).__init__()
         self.c_in = c_in
         self.c_out = c_out
         self.Ks = Ks
-        self.cheb_poly = cheb_poly
+        self.gc_cpa_kernel = gc_cpa_kernel
         self.enable_bias = enable_bias
         self.weight = nn.Parameter(torch.FloatTensor(Ks * c_in, c_out))
         if self.enable_bias == True:
@@ -97,10 +97,6 @@ class GraphConvolution_CPA(nn.Module):
         self.initialize_parameters()
 
     def initialize_parameters(self):
-        #_out_feats_weight = self.weight.size(1)
-        #stdv_w = 1. / math.sqrt(_out_feats_weight)
-        #init.uniform_(self.weight, -stdv_w, stdv_w)
-
         init.xavier_uniform_(self.weight)
         #init.kaiming_uniform_(self.weight)
 
@@ -112,7 +108,7 @@ class GraphConvolution_CPA(nn.Module):
     def forward(self, x):
         _, n_vertex, c_in = x.shape
         x_before_first_mul = x.permute(0, 2, 1).reshape(-1, n_vertex)
-        x_first_mul = torch.matmul(x_before_first_mul, self.cheb_poly).reshape(-1, c_in, self.Ks, n_vertex)
+        x_first_mul = torch.matmul(x_before_first_mul, self.gc_cpa_kernel).reshape(-1, c_in, self.Ks, n_vertex)
         x_before_second_mul = x_first_mul.permute(0, 3, 1, 2).reshape(-1, c_in * self.Ks)
         x_second_mul = torch.matmul(x_before_second_mul, self.weight).reshape(-1, n_vertex, self.c_out)
         if self.bias is not None:
@@ -122,12 +118,12 @@ class GraphConvolution_CPA(nn.Module):
         return x_gc_cpa
 
 class GraphConvolution_LWL(nn.Module):
-    def __init__(self, c_in, c_out, Ks, first_order_cheb_poly, enable_bias):
+    def __init__(self, c_in, c_out, Ks, gc_lwl_kernel, enable_bias):
         super(GraphConvolution_LWL, self).__init__()
         self.c_in = c_in
         self.c_out = c_out
         self.Ks = Ks # Ks = 1
-        self.first_order_cheb_poly = first_order_cheb_poly
+        self.gc_lwl_kerne = gc_lwl_kerne
         self.enable_bias = enable_bias
         self.weight = nn.Parameter(torch.FloatTensor(Ks * c_in, c_out))
         if enable_bias == True:
@@ -152,7 +148,7 @@ class GraphConvolution_LWL(nn.Module):
     def forward(self, x):
         _, n_vertex, c_in = x.shape
         x_before_first_mul = x.permute(0, 2, 1).reshape(-1, n_vertex)
-        x_first_mul = torch.matmul(x_before_first_mul, self.first_order_cheb_poly).reshape(-1, c_in, self.Ks, n_vertex)
+        x_first_mul = torch.matmul(x_before_first_mul, self.gc_lwl_kerne).reshape(-1, c_in, self.Ks, n_vertex)
         x_before_second_mul = x_first_mul.permute(0, 3, 1, 2).reshape(-1, c_in * self.Ks)
         x_second_mul = torch.matmul(x_before_second_mul, self.weight).reshape(-1, n_vertex, self.c_out)
         if self.bias is not None:
@@ -162,19 +158,19 @@ class GraphConvolution_LWL(nn.Module):
         return x_gc_lwl
 
 class SpatialGraphConvLayer(nn.Module):
-    def __init__(self, Ks, c_in, c_out, gc, spatio_kernel):
+    def __init__(self, Ks, c_in, c_out, gc, graph_conv_kernel):
         super(SpatialGraphConvLayer, self).__init__()
         self.Ks = Ks
         self.c_in = c_in
         self.c_out = c_out
         self.align = Align(c_in, c_out)
         self.gc = gc
-        self.spatio_kernel = spatio_kernel
+        self.graph_conv_kernel = graph_conv_kernel
         self.enbale_bias = True
         if self.gc == "gc_cpa":
-            self.gc_cpa = GraphConvolution_CPA(c_in, c_out, self.Ks, self.spatio_kernel, self.enbale_bias)
+            self.gc_cpa = GraphConvolution_CPA(c_in, c_out, self.Ks, self.graph_conv_kernel, self.enbale_bias)
         elif self.gc == "gc_lwl":
-            self.gc_lwl = GraphConvolution_LWL(c_in, c_out, self.Ks, self.spatio_kernel, self.enbale_bias)
+            self.gc_lwl = GraphConvolution_LWL(c_in, c_out, self.Ks, self.graph_conv_kernel, self.enbale_bias)
         self.relu = nn.ReLU()
 
     def forward(self, x):
@@ -197,10 +193,10 @@ class STConvBlock(nn.Module):
     # T: Temporal Convolution Layer (ReLU)
     # N: Layer Normolization
 
-    def __init__(self, Kt, Ks, n_vertex, channel, gc, spatio_kernel, drop_prob):
+    def __init__(self, Kt, Ks, n_vertex, channel, gc, graph_conv_kernel, drop_prob):
         super(STConvBlock, self).__init__()
         self.tmp_conv1 = TemporalConvLayer(Kt, channel[0], channel[1], "GLU")
-        self.sg_conv = SpatialGraphConvLayer(Ks, channel[1], channel[1], gc, spatio_kernel)
+        self.sg_conv = SpatialGraphConvLayer(Ks, channel[1], channel[1], gc, graph_conv_kernel)
         self.tmp_conv2 = TemporalConvLayer(Kt, channel[1], channel[2], "ReLU")
         self.ln = nn.LayerNorm([n_vertex, channel[2]])
         self.dropout = nn.Dropout(drop_prob)
