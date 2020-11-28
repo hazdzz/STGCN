@@ -31,9 +31,16 @@ def gc_cpa_kernel(widetilde_L, Ks):
 
     n_vertex = widetilde_L.shape[0]
 
-    if Ks == 1:
+    K_cp = Ks - 1
+
+    if K_cp == 0:
+        # T_0(x) = 1
         return np.identity(n_vertex)
-    elif Ks >= 2:
+    elif K_cp == 1:
+        # T_0(x) = 1
+        # T_1(x) = x
+        return [np.identity(n_vertex), widetilde_L]
+    elif K_cp >= 2:
         chebyshev_polynomials = [np.identity(n_vertex), widetilde_L]
 
         # T_k(x) = 2 * x * T_{k - 1}(x) - T_{k - 2}(x)
@@ -42,7 +49,7 @@ def gc_cpa_kernel(widetilde_L, Ks):
 
         return np.concatenate(chebyshev_polynomials, axis=-1)
     else:
-        raise ValueError(f'ERROR: the size of spatial kernel must be greater than 1, but received "{Ks}".')
+        raise ValueError(f'ERROR: the order k of Chebyshev Polynomial cannot negative, but received "{K_cp}".')
 
 def gc_lwl_kernel(W):
     n_vertex = W.shape[0]
