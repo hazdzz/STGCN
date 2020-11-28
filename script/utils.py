@@ -49,7 +49,7 @@ def gc_cpa_kernel(widetilde_L, Ks):
 
         return np.concatenate(chebyshev_polynomials, axis=-1)
     else:
-        raise ValueError(f'ERROR: the order k of Chebyshev Polynomial cannot negative, but received "{K_cp}".')
+        raise ValueError(f'ERROR: the order k of Chebyshev Polynomial cannot be negative, but received "{K_cp}".')
 
 def gc_lwl_kernel(W):
     n_vertex = W.shape[0]
