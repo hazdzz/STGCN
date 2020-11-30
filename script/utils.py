@@ -24,13 +24,16 @@ def scaled_laplacian(W):
     return widetilde_L
 
 def gc_cpa_kernel(widetilde_L, Ks):
-    # The Chebyshev Polynomials are recursively defined as 
+    # The Chebyshev polynomials are recursively defined as 
     # T_k(x) = 2 * x * T_{k - 1}(x) - T_{k - 2}(x)
     # T_0(x) = 1
     # T_1(x) = x
 
     n_vertex = widetilde_L.shape[0]
 
+    # K_cp is the order of Chebyshev polynomials
+    # K_cp + 1 = Ks
+    # Because K_cp starts from 0, and Ks starts from 1 
     K_cp = Ks - 1
 
     if K_cp == 0:
@@ -49,7 +52,7 @@ def gc_cpa_kernel(widetilde_L, Ks):
 
         return np.concatenate(chebyshev_polynomials, axis=-1)
     else:
-        raise ValueError(f'ERROR: the order k of Chebyshev Polynomial cannot be negative, but received "{K_cp}".')
+        raise ValueError(f'ERROR: the graph convolution kernel size Ks must be greater than 0, but received "{Ks}".')
 
 def gc_lwl_kernel(W):
     n_vertex = W.shape[0]

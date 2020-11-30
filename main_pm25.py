@@ -28,13 +28,13 @@ parser.add_argument('--batch_size', type=int, default=32,
                     help='batch size, defualt as 32')
 parser.add_argument('--epochs', type=int, default=100,
                     help='epochs, default as 100')
-parser.add_argument('--gc', type=str, default='gc_lwl',
-                    help='the type of gc, default as gc_cpa (Chebyshev Polynomials Approximation), \
+parser.add_argument('--gc', type=str, default='gc_cpa',
+                    help='the type of gc, default as gc_cpa (Chebyshev polynomials approximation), \
                     gc_lwl (layer-wise linear) as alternative')
 parser.add_argument('--Kt', type=int, default=3,
                     help='the kernel size of causal convolution, default as 3')
 parser.add_argument('--Ks', type=int, default=3,
-                    help='the kernel size of graph convolution with Chebshev Polynomials approximation, defulat as 3')
+                    help='the kernel size of graph convolution with Chebshev polynomials approximation, defulat as 3')
 parser.add_argument('--opt', type=str, default='AdamW',
                     help='optimizer, default as AdamW')
 parser.add_argument('--clip_value', type=int, default=None,
@@ -88,7 +88,10 @@ else:
 
 drop_prob = 0.1
 if gc == "gc_cpa":
-    # Ks is the kernel size of Chebyshev Polynomials Approximation, default as 3
+    # Ks is the kernel size of Chebyshev polynomials approximation, default as 3
+    # K_cp is the order of Chebyshev polynomials
+    # K_cp + 1 = Ks
+    # Because K_cp starts from 0, and Ks starts from 1 
     Ks = args.Ks
     widetilde_L = utils.scaled_laplacian(W)
     gc_cpa_kernel = torch.from_numpy(utils.gc_cpa_kernel(widetilde_L, Ks)).float().to(device)
@@ -96,8 +99,10 @@ if gc == "gc_cpa":
     model_stgcn_gc_cpa_save_path = args.model_stgcn_gc_cpa_save_path
 elif gc == "gc_lwl":
     # Ks is the kernel size of Layer-Wise Linear
-    # Ks of Layer-Wise Linear must be 1
-    Ks = 1
+    # Ks of Layer-Wise Linear must be 2
+    # For First-order Chebyshev polynomials, K_cp = 1,
+    # Ks = K_cp + 1 = 2
+    Ks = 2
     gc_lwl_kernel = torch.from_numpy(utils.gc_lwl_kernel(W)).float().to(device)
     model_stgcn_gc_lwl = stgcn.STGCN_GC_LWL(Kt, Ks, blocks, n_his, n_vertex, gc, gc_lwl_kernel, drop_prob).to(device)
     model_stgcn_gc_lwl_save_path = args.model_stgcn_gc_lwl_save_path
