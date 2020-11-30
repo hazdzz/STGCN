@@ -14,3 +14,16 @@ According to the paper, STGCN could be applied into general spatio-temporal stru
 
 ## Graph Convolution in STGCN
 If you are interested in how different graph convolutions may effect the result of STGCN, please move into https://github.com/hazdzz/STGCN_graphconv_exp.
+
+## Differents of code between mine and author's
+1. I fix the bug of calculating the normalized laplacian matrix. In the author's code, it calculated as I_n + \widetildeD^{-1/2} * \widetildeW * \widetildeD^{-1/2} which is wrong, obviously. In my code, it calculated as \widetildeD^{-1/2} * \widetildeW * \widetildeD^{-1/2} according to the paper *Semi-Supervised Classification with Graph Convolutional Networks*.
+2. I add the early stopping approach.
+3. I enable the dropout approach for training and testing.
+4. I offer a better set of parameters rather than the author's code offered.
+5. We find STGCN could be used for PM 2.5 prediction, so I add main function to achieve it.
+
+## The result for road traffic prediction on dataset PeMSD7(M)(45 mins)
+|  Model | MAE  |  MAPE | RMSE |
+|  ----  | ---- |  ---- | ---- |
+| STGCN(Cheb)  | 3.163535 | 7.8568 | 5.878053 |
+| STGCN(1<sup>st</sup>)  | 3.099546 | 7.7346 | 5.731380 |
