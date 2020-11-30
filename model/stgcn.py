@@ -47,7 +47,6 @@ class TemporalConvLayer(nn.Module):
             self.conv = nn.Conv2d(c_in, c_out, (Kt, 1), 1)
         self.sigmoid = nn.Sigmoid()
         self.relu = nn.ReLU()
-        self.leaky_relu = nn.LeakyReLU()
 
     def forward(self, x):   
         x_input = self.align(x)[:, :, self.Kt - 1:, :]
@@ -69,10 +68,6 @@ class TemporalConvLayer(nn.Module):
             # Temporal Convolution Layer (ReLU)
             x_relu = self.relu(x_conv + x_input)
             x_tc_out = x_relu
-        elif self.act_func == "LeakyReLU":
-            # Temporal Convolution Layer (LeakyReLU)
-            x_leaky_relu = self.leaky_relu(x_conv + x_input)
-            x_tc_out = x_leaky_relu
         elif self.act_func == "Linear":
             # Temporal Convolution Layer (Linear)
             x_linear = x_conv
@@ -111,6 +106,7 @@ class GraphConvolution_CPA(nn.Module):
         x_first_mul = torch.matmul(x_before_first_mul, self.gc_cpa_kernel).reshape(-1, c_in, self.Ks, n_vertex)
         x_before_second_mul = x_first_mul.permute(0, 3, 1, 2).reshape(-1, c_in * self.Ks)
         x_second_mul = torch.matmul(x_before_second_mul, self.weight).reshape(-1, n_vertex, self.c_out)
+
         if self.bias is not None:
             x_gc_cpa = x_second_mul + self.bias
         else:
