@@ -22,8 +22,10 @@ parser.add_argument('--enable_cuda', type=bool, default='True',
                     help='enable CUDA, default as True')
 parser.add_argument('--window_size', type=int, default=5,
                     help='sampling period (mins)')
-parser.add_argument('--n_pred', type=int, default=9)
-parser.add_argument('--n_his', type=int, default=12)
+parser.add_argument('--n_pred', type=int, default=9, 
+                    help='window size of the predicted period')
+parser.add_argument('--n_his', type=int, default=12, 
+                    help='window size of the historical observation')
 parser.add_argument('--batch_size', type=int, default=32,
                     help='batch size, defualt as 32')
 parser.add_argument('--epochs', type=int, default=200,
@@ -132,18 +134,17 @@ test_iter = torch.utils.data.DataLoader(dataset=test_data, batch_size=bs, shuffl
 
 loss = nn.MSELoss()
 epochs = args.epochs
+learning_rate = 7.5e-4
 if gc == "gc_cpa":
     model = model_stgcn_gc_cpa
     model_save_path = model_stgcn_gc_cpa_save_path
     model_stats = summary(model_stgcn_gc_cpa, (1, n_his, n_vertex))
     early_stopping = pytorchtools.EarlyStopping(patience=17, path="./model/checkpoint/cp_stgcn_gc_cpa_rt.pt", verbose=True)
-    learning_rate = 7.5e-4
 elif gc == "gc_lwl":
     model = model_stgcn_gc_lwl
     model_save_path = model_stgcn_gc_lwl_save_path
     model_stats = summary(model_stgcn_gc_lwl, (1, n_his, n_vertex))
     early_stopping = pytorchtools.EarlyStopping(patience=17, path="./model/checkpoint/cp_stgcn_gc_lwl_rt.pt", verbose=True)
-    learning_rate = 7.5e-4
 if args.opt == "RMSProp":
     optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
 elif args.opt == "Adam":
@@ -218,7 +219,7 @@ def test():
     test_MSE = utils.evaluate_model(best_model, loss, test_iter)
     print('Test loss {:.6f}'.format(test_MSE))
     test_MAE, test_RMSE, test_MAPE = utils.evaluate_metric(best_model, test_iter, scaler)
-    print('MAE {:.6f} | RMSE {:.6f} | MAPE {:.6f}'.format(test_MAE, test_RMSE, test_MAPE))
+    print('MAE {:.6f} | RMSE {:.6f} | MAPE {:.8f}'.format(test_MAE, test_RMSE, test_MAPE))
 
 if __name__ == "__main__":
     train()
