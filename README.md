@@ -28,5 +28,5 @@ If you are interested in how different graph convolutions may effect the result 
 ## The result for road traffic prediction on dataset PeMSD7(M)(45 mins)
 |  Model | MAE  |  MAPE | RMSE |
 |  ----  | ---- |  ---- | ---- |
-| STGCN(Cheb)  | 3.163535 | 7.8568 | 5.878053 |
-| STGCN(1<sup>st</sup>)  | 3.099546 | 7.7346 | 5.731380 |
+| STGCN(Cheb)  | 3.163535 | 7.8568% | 5.878053 |
+| STGCN(1<sup>st</sup>)  | 3.099546 | 7.7346% | 5.731380 |
