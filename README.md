@@ -15,9 +15,6 @@ https://arxiv.org/abs/1709.04875
 ## Applications
 According to the paper, STGCN could be applied into general spatio-temporal structured sequence forecasting scenarios. We find it could be used for PM2.5 prediction.
 
-## Graph Convolution in STGCN
-If you are interested in how different graph convolutions may effect the result of STGCN, please move into https://github.com/hazdzz/STGCN_graphconv_exp.
-
 ## Differents of code between mine and author's
 1. I fix the bug of calculating the normalized laplacian matrix. In the author's code, it calculated as I_n + \widetildeD^{-1/2} * \widetildeW * \widetildeD^{-1/2} which is wrong, obviously. In my code, it calculated as \widetildeD^{-1/2} * \widetildeW * \widetildeD^{-1/2} according to the paper *Semi-Supervised Classification with Graph Convolutional Networks*.
 2. I add the early stopping approach.
