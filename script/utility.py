@@ -1,5 +1,5 @@
 import numpy as np
-import scipy
+from scipy.sparse.linalg import eigs
 import torch
 
 def scaled_laplacian(W):
@@ -16,7 +16,7 @@ def scaled_laplacian(W):
             if (D[i] > 0) and (D[j] > 0):
                 L[i, j] = L[i, j] / np.sqrt(D[i] * D[j])
     
-    lambda_max = scipy.sparse.linalg.eigs(L, k = 1, which = 'LR')[0][0].real
+    lambda_max = eigs(L, k = 1, which = 'LR')[0][0].real
     #lambda_max = np.linalg.eigvals(L).max().real
  
     widetilde_L = 2 * L / lambda_max - np.identity(n_vertex)

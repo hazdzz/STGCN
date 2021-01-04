@@ -14,7 +14,7 @@ import torch.optim as optim
 
 from torchsummary import summary
 
-from script import data_loader, utils, pytorchtools
+from script import data_loader, utility, pytorchtools
 from model import stgcn
 
 parser = argparse.ArgumentParser(description='STGCN for PM2.5 prediction')
@@ -93,8 +93,8 @@ if gc == "gc_cpa":
     # K_cp + 1 = Ks
     # Because K_cp starts from 0, and Ks starts from 1 
     Ks = args.Ks
-    widetilde_L = utils.scaled_laplacian(W)
-    gc_cpa_kernel = torch.from_numpy(utils.gc_cpa_kernel(widetilde_L, Ks)).float().to(device)
+    widetilde_L = utility.scaled_laplacian(W)
+    gc_cpa_kernel = torch.from_numpy(utility.gc_cpa_kernel(widetilde_L, Ks)).float().to(device)
     model_stgcn_gc_cpa = stgcn.STGCN_GC_CPA(Kt, Ks, blocks, n_his, n_vertex, gc, gc_cpa_kernel, drop_prob).to(device)
     model_stgcn_gc_cpa_save_path = args.model_stgcn_gc_cpa_save_path
 elif gc == "gc_lwl":
@@ -103,7 +103,7 @@ elif gc == "gc_lwl":
     # For First-order Chebyshev polynomials, K_cp = 1,
     # Ks = K_cp + 1 = 2
     Ks = 2
-    gc_lwl_kernel = torch.from_numpy(utils.gc_lwl_kernel(W)).float().to(device)
+    gc_lwl_kernel = torch.from_numpy(utility.gc_lwl_kernel(W)).float().to(device)
     model_stgcn_gc_lwl = stgcn.STGCN_GC_LWL(Kt, Ks, blocks, n_his, n_vertex, gc, gc_lwl_kernel, drop_prob).to(device)
     model_stgcn_gc_lwl_save_path = args.model_stgcn_gc_lwl_save_path
 
@@ -209,9 +209,9 @@ def test():
     elif gc == "gc_lwl":
         best_model = stgcn.STGCN_GC_LWL(Kt, Ks, blocks, n_his, n_vertex, gc, gc_lwl_kernel, drop_prob).to(device)
     best_model.load_state_dict(torch.load(model_save_path))
-    test_MSE = utils.evaluate_model(best_model, loss, test_iter)
+    test_MSE = utility.evaluate_model(best_model, loss, test_iter)
     print('Test loss {:.6f}'.format(test_MSE))
-    test_MAE, test_RMSE, test_MAPE = utils.evaluate_metric(best_model, test_iter, scaler)
+    test_MAE, test_RMSE, test_MAPE = utility.evaluate_metric(best_model, test_iter, scaler)
     print('MAE {:.6f} | RMSE {:.6f} | MAPE {:.8f}'.format(test_MAE, test_RMSE, test_MAPE))
 
 if __name__ == "__main__":
