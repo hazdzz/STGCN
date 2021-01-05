@@ -14,7 +14,7 @@ import torch.optim as optim
 
 from torchsummary import summary
 
-from script import data_loader, utility, pytorchtools
+from script import data_loader, utility, earlystopping
 from model import stgcn
 
 parser = argparse.ArgumentParser(description='STGCN for PM2.5 prediction')
@@ -132,12 +132,12 @@ if gc == "gc_cpa":
     model = model_stgcn_gc_cpa
     model_save_path = model_stgcn_gc_cpa_save_path
     model_stats = summary(model_stgcn_gc_cpa, (1, n_his, n_vertex))
-    early_stopping = pytorchtools.EarlyStopping(patience=20, path="./model/checkpoint/cp_stgcn_gc_cpa_pm25.pt",verbose=True)
+    early_stopping = earlystopping.EarlyStopping(patience=20, path="./model/checkpoint/cp_stgcn_gc_cpa_pm25.pt",verbose=True)
 elif gc == "gc_lwl":
     model = model_stgcn_gc_lwl
     model_save_path = model_stgcn_gc_lwl_save_path
     model_stats = summary(model_stgcn_gc_lwl, (1, n_his, n_vertex))
-    early_stopping = pytorchtools.EarlyStopping(patience=20, path="./model/checkpoint/cp_stgcn_gc_lwl_pm25.pt",verbose=True)
+    early_stopping = earlystopping.EarlyStopping(patience=20, path="./model/checkpoint/cp_stgcn_gc_lwl_pm25.pt",verbose=True)
 if args.opt == "RMSProp":
     optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
 elif args.opt == "Adam":
