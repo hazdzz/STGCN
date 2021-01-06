@@ -61,8 +61,10 @@ def gc_lwl_kernel(W):
     widetilde_D_inv_sqrt = np.mat(np.diag(np.power(row_sum, -0.5)))
 
     # Renormalized trick
-    # \widetildeD^{-1/2} * \widetildeW * \widetildeD^{-1/2}
-    return widetilde_D_inv_sqrt * widetilde_W * widetilde_D_inv_sqrt
+    # \hatA = \widetildeD^{-1/2} * \widetildeW * \widetildeD^{-1/2}
+    hat_A = widetilde_D_inv_sqrt * widetilde_W * widetilde_D_inv_sqrt
+    
+    return hat_A
 
 def evaluate_model(model, loss, data_iter):
     model.eval()
