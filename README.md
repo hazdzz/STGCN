@@ -23,7 +23,7 @@ According to the paper, STGCN could be applied into general spatio-temporal stru
 5. We find STGCN could be used for PM 2.5 prediction, so I add main function to achieve it.
 
 ## The result for road traffic prediction on dataset PeMSD7(M)(45 mins)
-|  Model | MAE  |  MAPE | RMSE |
-|  ----  | ---- |  ---- | ---- |
-| STGCN(Cheb)  | 3.163535 | 7.8568% | 5.878053 |
-| STGCN(1<sup>st</sup>)  | 3.099546 | 7.7346% | 5.731380 |
+|  Model(paper)  |  Model(code)  |  MAE  |  MAPE  |  RMSE  |
+|  ----  |  ----  |  ----  |  ----  |  ----  |
+|  STGCN(Cheb)  |  STGCN_GC_CPA  |  3.163535  |  7.8568%  |  5.878053  |
+|  STGCN(1<sup>st</sup>)  |  STGCN_GC_LWL  |  3.099546  |  7.7346%  |  5.731380  |
