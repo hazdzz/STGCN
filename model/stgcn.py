@@ -84,7 +84,7 @@ class GraphConvolution_CPA(nn.Module):
         self.Ks = Ks
         self.gc_cpa_kernel = gc_cpa_kernel
         self.enable_bias = enable_bias
-        self.weight = nn.Parameter(torch.FloatTensor(Ks * c_in, c_out))
+        self.weight = nn.Parameter(torch.FloatTensor(Ks, c_in, c_out))
         if self.enable_bias == True:
             self.bias = nn.Parameter(torch.FloatTensor(c_out))
         else:
@@ -101,11 +101,11 @@ class GraphConvolution_CPA(nn.Module):
             init.uniform_(self.bias, -stdv_b, stdv_b)
 
     def forward(self, x):
-        _, n_vertex, c_in = x.shape
-        x_before_first_mul = x.permute(0, 2, 1).reshape(-1, n_vertex)
-        x_first_mul = torch.matmul(x_before_first_mul, self.gc_cpa_kernel).reshape(-1, c_in, self.Ks, n_vertex)
-        x_before_second_mul = x_first_mul.permute(0, 3, 1, 2).reshape(-1, c_in * self.Ks)
-        x_second_mul = torch.matmul(x_before_second_mul, self.weight).reshape(-1, n_vertex, self.c_out)
+        batch_size, c_in, T, n_vertex = x.shape
+
+        x_before_first_mul = x.reshape(-1, c_in)
+        x_first_mul = torch.mm(x_before_first_mul, self.weight.reshape(c_in, -1)).reshape(n_vertex * self.Ks, -1)
+        x_second_mul = torch.spmm(self.gc_cpa_kernel, x_first_mul).reshape(-1, self.c_out)
 
         if self.bias is not None:
             x_gc_cpa = x_second_mul + self.bias
@@ -141,18 +141,8 @@ class GraphConvolution_LWL(nn.Module):
             init.uniform_(self.bias, -stdv_b, stdv_b)
 
     def forward(self, x):
-        _, n_vertex, c_in = x.shape
+        batch_size, c_in, T, n_vertex = x.shape
 
-        # The STGCN author's way
-        #x_before_first_mul = x.permute(0, 2, 1).reshape(-1, n_vertex)
-        #x_first_mul = torch.matmul(x_before_first_mul, self.gc_lwl_kernel).reshape(-1, c_in, 1, n_vertex)
-        #x_before_second_mul = x_first_mul.permute(0, 3, 1, 2).reshape(-1, c_in)
-        #x_second_mul = torch.matmul(x_before_second_mul, self.weight).reshape(-1, n_vertex, self.c_out)
-
-        # There are the code from GraphConvolution of GCN
-        #support = torch.mm(input, self.weight)
-        #output = torch.spmm(adj, support)
-        # The GCN author's way
         x_before_first_mul = x.reshape(-1, c_in)
         x_first_mul = torch.mm(x_before_first_mul, self.weight).reshape(n_vertex, -1)
         x_second_mul = torch.spmm(self.gc_lwl_kernel, x_first_mul).reshape(-1, self.c_out)
@@ -181,14 +171,13 @@ class SpatialGraphConvLayer(nn.Module):
 
     def forward(self, x):
         batch_size, c_in, T, n_vertex = x.shape
-        x_input = self.align(x)
-        x_gc_input = x.permute(0, 2, 3, 1).reshape(-1, n_vertex, c_in)
+        x_gc_input = self.align(x)
         if self.gc == "gc_cpa":
             x_gc_output = self.gc_cpa(x_gc_input)
         elif self.gc == "gc_lwl":
             x_gc_output = self.gc_lwl(x_gc_input)
         x_sgc = x_gc_output.reshape(-1, T, n_vertex, self.c_out).permute(0, 3, 1, 2).contiguous()
-        x_sgc_with_rc = x_sgc[:, : self.c_out, :, :] + x_input.contiguous()
+        x_sgc_with_rc = x_sgc[:, : self.c_out, :, :] + x_gc_input.contiguous()
         x_sgc_output = self.relu(x_sgc_with_rc)
         return x_sgc_output
 
@@ -240,12 +229,12 @@ class STGCN_GC_CPA(nn.Module):
     # STGCN(GC_CPA) contains 'TSTN TSTN TNTF' structure
         
     # T: Temporal Convolution Layer (GLU)
-    # S: Spitial Graph Convolution Layer (CPA)
+    # S: Spitial Graph Convolution Layer (GC_CPA)
     # T: Temporal Convolution Layer (ReLU)
     # N: Layer Normolization
 
     # T: Temporal Convolution Layer (GLU)
-    # S: Spitial Graph Convolution Layer (CPA)
+    # S: Spitial Graph Convolution Layer (GC_CPA)
     # T: Temporal Convolution Layer (ReLU)
     # N: Layer Normolization
 
@@ -274,12 +263,12 @@ class STGCN_GC_LWL(nn.Module):
     # STGCN(GC_LWL) contains 'TSTN TSTN TNTF' structure
         
     # T: Temporal Convolution Layer (GLU)
-    # S: Spitial Graph Convolution Layer (LWL)
+    # S: Spitial Graph Convolution Layer (GC_LWL)
     # T: Temporal Convolution Layer (ReLU)
     # N: Layer Normolization
 
     # T: Temporal Convolution Layer (GLU)
-    # S: Spitial Graph Convolution Layer (LWL)
+    # S: Spitial Graph Convolution Layer (GC_LWL)
     # T: Temporal Convolution Layer (ReLU)
     # N: Layer Normolization
 
