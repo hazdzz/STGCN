@@ -14,7 +14,7 @@ import torch.optim as optim
 
 from torchsummary import summary
 
-from script import data_loader, utility, earlystopping
+from script import dataloader, utility, earlystopping
 from model import stgcn
 
 parser = argparse.ArgumentParser(description='STGCN for road traffic prediction')
@@ -76,7 +76,7 @@ else:
     n_his = args.n_his
 
 wam_path = args.wam_path
-W = data_loader.load_weighted_adjacency_matrix(wam_path)
+W = dataloader.load_weighted_adjacency_matrix(wam_path)
 
 n_train, n_val, n_test = 34, 5, 5
 len_train, len_val, len_test = n_train * day_slot, n_val * day_slot, n_test * day_slot
@@ -114,15 +114,15 @@ elif gc == "gc_lwl":
     model_stgcn_gc_lwl = stgcn.STGCN_GC_LWL(Kt, Ks, blocks, n_his, n_vertex, gc, gc_lwl_kernel, drop_prob).to(device)
     model_stgcn_gc_lwl_save_path = args.model_stgcn_gc_lwl_save_path
 
-train, val, test = data_loader.load_data(data_path, len_train, len_val)
+train, val, test = dataloader.load_data(data_path, len_train, len_val)
 scaler = StandardScaler()
 train = scaler.fit_transform(train)
 val = scaler.transform(val)
 test = scaler.transform(test)
 
-x_train, y_train = data_loader.data_transform(train, n_his, n_pred, day_slot, device)
-x_val, y_val = data_loader.data_transform(val, n_his, n_pred, day_slot, device)
-x_test, y_test = data_loader.data_transform(test, n_his, n_pred, day_slot, device)
+x_train, y_train = dataloader.data_transform(train, n_his, n_pred, day_slot, device)
+x_val, y_val = dataloader.data_transform(val, n_his, n_pred, day_slot, device)
+x_test, y_test = dataloader.data_transform(test, n_his, n_pred, day_slot, device)
 
 bs = args.batch_size
 train_data = torch.utils.data.TensorDataset(x_train, y_train)
