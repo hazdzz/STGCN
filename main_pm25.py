@@ -82,7 +82,7 @@ else:
     n_vertex = n_vertex_v
 
 if (args.gc != "gc_cpa") and (args.gc != "gc_lwl"):
-    raise ValueError(f'ERROR: "{args.gc}" is not defined.')
+    raise NotImplementedError(f'ERROR: "{args.gc}" is not implemented.')
 else:
     gc = args.gc
 
