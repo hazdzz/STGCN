@@ -8,10 +8,6 @@ https://arxiv.org/abs/1709.04875
 ## Model structure
 <img src="./figure/stgcn_model_structure.png" style="zoom:100%" />
 
-## Other implementations
-1. https://github.com/Davidham3/STGCN (MXNet)
-2. https://github.com/VeritasYin/STGCN_IJCAI-18 (TensorFlow v1)
-
 ## Differents of code between mine and author's
 1. Fix bugs 
 2. Add Early Stopping approach
