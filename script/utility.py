@@ -1,35 +1,77 @@
 import numpy as np
+
+from scipy.linalg import fractional_matrix_power
 from scipy.sparse.linalg import eigs
+
 import torch
 
-def scaled_laplacian(W):
-    # W is a weighted adjacency matrix
-    # D is a diagonal degree matrix
-    # \widetilde L = 2 * L / lambda_max - I_n
+def calculate_laplacian_metrix(adj_mat, mat_type):
+    n_vertex = adj_mat.shape[0]
+    deg_mat = np.asmatrix(np.diag(np.sum(adj_mat, axis=1)))
+    adj_mat = np.asmatrix(adj_mat)
+    id_mat = np.asmatrix(np.identity(n_vertex))
 
-    n_vertex = W.shape[0]
-    D = np.sum(W, axis=1)
-    L = np.diag(D) - W
+    # Symmetric
+    com_lap_mat = deg_mat - adj_mat
 
-    for i in range(n_vertex):
-        for j in range(n_vertex):
-            if (D[i] > 0) and (D[j] > 0):
-                L[i, j] = L[i, j] / np.sqrt(D[i] * D[j])
-    
-    lambda_max = eigs(L, k = 1, which = 'LR')[0][0].real
-    #lambda_max = np.linalg.eigvals(L).max().real
- 
-    widetilde_L = 2 * L / lambda_max - np.identity(n_vertex)
+    # For SpectraConv
+    # To (0, 1)
+    sym_normd_lap_mat = np.matmul(np.matmul(fractional_matrix_power(deg_mat, -0.5), com_lap_mat), fractional_matrix_power(deg_mat, -0.5))
 
-    return widetilde_L
+    # For ChebConv
+    # From (0, 1) to (-1, 1)
+    lambda_max_sym = eigs(sym_normd_lap_mat, k=1, which='LR')[0][0].real
+    wid_sym_normd_lap_mat = 2 * sym_normd_lap_mat / lambda_max_sym - id_mat
 
-def gc_cpa_kernel(widetilde_L, Ks):
+    # For GCNConv or GCNIIConv
+    wid_deg_mat = deg_mat + id_mat
+    wid_adj_mat = adj_mat + id_mat
+    hat_sym_normd_lap_mat = np.matmul(np.matmul(fractional_matrix_power(wid_deg_mat, -0.5), wid_adj_mat), fractional_matrix_power(wid_deg_mat, -0.5))
+
+    # Random Walk
+    rw_lap_mat = np.matmul(np.linalg.matrix_power(deg_mat, -1), adj_mat)
+
+    # For SpectraConv
+    # To (0, 1)
+    rw_normd_lap_mat = id_mat - rw_lap_mat
+
+    # For ChebConv
+    # From (0, 1) to (-1, 1)
+    lambda_max_rw = eigs(rw_lap_mat, k=1, which='LR')[0][0].real
+    wid_rw_normd_lap_mat = 2 * rw_normd_lap_mat / lambda_max_rw - id_mat
+
+    # For GCNConv
+    wid_deg_mat = deg_mat + id_mat
+    wid_adj_mat = adj_mat + id_mat
+    hat_rw_normd_lap_mat = np.matmul(np.linalg.matrix_power(wid_deg_mat, -1), wid_adj_mat)
+
+    if mat_type == 'id_mat':
+        return id_mat
+    elif mat_type == 'com_lap_mat':
+        return com_lap_mat
+    elif mat_type == 'sym_normd_lap_mat':
+        return sym_normd_lap_mat
+    elif mat_type == 'wid_sym_normd_lap_mat':
+        return wid_sym_normd_lap_mat
+    elif mat_type == 'hat_sym_normd_lap_mat':
+        return hat_sym_normd_lap_mat
+    elif mat_type == 'rw_normd_lap_mat':
+        return rw_normd_lap_mat
+    elif mat_type == 'wid_rw_normd_lap_mat':
+        return wid_rw_normd_lap_mat
+    elif mat_type == 'hat_rw_normd_lap_mat':
+        return hat_rw_normd_lap_mat
+    else:
+        raise ValueError(f'ERROR: "{mat_type}" is unknown.')
+
+def calculate_chebconv_graph_filter(lap_mat, Ks):
     # The Chebyshev polynomials are recursively defined as 
     # T_k(x) = 2 * x * T_{k - 1}(x) - T_{k - 2}(x)
     # T_0(x) = 1
     # T_1(x) = x
 
-    n_vertex = widetilde_L.shape[0]
+    n_vertex = lap_mat.shape[0]
+    id_mat = np.identity(n_vertex)
 
     # K_cp is the order of Chebyshev polynomials
     # K_cp + 1 = Ks
@@ -38,33 +80,22 @@ def gc_cpa_kernel(widetilde_L, Ks):
 
     if K_cp == 0:
         # T_0(x) = 1
-        return np.identity(n_vertex)
+        return id_mat
     elif K_cp == 1:
-        # T_0(x) = 1
         # T_1(x) = x
-        return [np.identity(n_vertex), widetilde_L]
+        chebyshev_polynomials_laplacian_matrix_list = [id_mat]
+        chebyshev_polynomials_laplacian_matrix_list.append(lap_mat)
+        return np.concatenate(chebyshev_polynomials_laplacian_matrix_list, axis=-1)
     elif K_cp >= 2:
-        chebyshev_polynomials = [np.identity(n_vertex), widetilde_L]
+        chebyshev_polynomials_laplacian_matrix_list = [id_mat, lap_mat]
 
         # T_k(x) = 2 * x * T_{k - 1}(x) - T_{k - 2}(x)
         for k in range(2, Ks):
-            chebyshev_polynomials.append(2 * widetilde_L * chebyshev_polynomials[k - 1] - chebyshev_polynomials[k - 2])
+            chebyshev_polynomials_laplacian_matrix_list.append(2 * lap_mat * chebyshev_polynomials_laplacian_matrix_list[k - 1] - chebyshev_polynomials_laplacian_matrix_list[k - 2])
 
-        return np.concatenate(chebyshev_polynomials, axis=-1)
+        return np.concatenate(chebyshev_polynomials_laplacian_matrix_list, axis=-1)
     else:
         raise ValueError(f'ERROR: the graph convolution kernel size Ks must be greater than 0, but received "{Ks}".')
-
-def gc_lwl_kernel(W):
-    n_vertex = W.shape[0]
-    widetilde_W = W + np.identity(n_vertex)
-    row_sum = np.sum(widetilde_W, axis=1)
-    widetilde_D_inv_sqrt = np.mat(np.diag(np.power(row_sum, -0.5)))
-
-    # Renormalized trick
-    # \hatA = \widetildeD^{-1/2} * \widetildeW * \widetildeD^{-1/2}
-    hat_A = widetilde_D_inv_sqrt * widetilde_W * widetilde_D_inv_sqrt
-    
-    return hat_A
 
 def evaluate_model(model, loss, data_iter):
     model.eval()
@@ -75,21 +106,23 @@ def evaluate_model(model, loss, data_iter):
             l = loss(y_pred, y)
             l_sum += l.item() * y.shape[0]
             n += y.shape[0]
-        return l_sum / n
+        mse = l_sum / n
+        
+        return mse
 
 def evaluate_metric(model, data_iter, scaler):
     model.eval()
     with torch.no_grad():
-        mae, mse, mape = [], [], []
+        mae, mape, mse = [], [], []
         for x, y in data_iter:
             y = scaler.inverse_transform(y.cpu().numpy()).reshape(-1)
             y_pred = scaler.inverse_transform(model(x).view(len(x), -1).cpu().numpy()).reshape(-1)
             d = np.abs(y - y_pred)
             mae += d.tolist()
-            mse += (d ** 2).tolist()
             mape += (d / y).tolist()
+            mse += (d ** 2).tolist()
         MAE = np.array(mae).mean()
-        RMSE = np.sqrt(np.array(mse).mean())
         MAPE = np.array(mape).mean()
+        RMSE = np.sqrt(np.array(mse).mean())
 
-        return MAE, RMSE, MAPE
+        return MAE, MAPE, RMSE

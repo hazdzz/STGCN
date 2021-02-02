@@ -12,18 +12,26 @@ https://arxiv.org/abs/1709.04875
 1. https://github.com/Davidham3/STGCN (MXNet)
 2. https://github.com/VeritasYin/STGCN_IJCAI-18 (TensorFlow v1)
 
-## Applications
-According to the paper, STGCN could be applied into general spatio-temporal structured sequence forecasting scenarios. We find it could be used for PM2.5 prediction.
-
 ## Differents of code between mine and author's
-1. I fix the bug of calculating the renormalized laplacian matrix. In the author's code, it calculated as I_n + \widetildeD^{-1/2} * \widetildeW * \widetildeD^{-1/2} which is wrong, obviously. In my code, it calculated as \widetildeD^{-1/2} * \widetildeW * \widetildeD^{-1/2} according to the paper *Semi-Supervised Classification with Graph Convolutional Networks*.
-2. I add the early stopping approach.
-3. I enable the dropout approach for training and testing.
-4. I offer a better set of hyperparameters rather than the author's code offered.
-5. We find STGCN could be used for PM 2.5 prediction, so I add main function to achieve it.
+1. Fix bugs 
+2. Add Early Stopping approach
+3. Add Dropout approach
+4. Offer a better set of hyperparameters
+
+## The result for road traffic prediction on dataset PeMSD7(M)(15 mins)
+|  Model(paper)  |  Model(code)  |  Gated activation function  |  Laplacian matrix type  |  MAE  |  MAPE  |  RMSE  |
+|  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |
+|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3 aka K=2)  |  GLU  |  L_sym  |  2.219458  |  5.137035%  |  3.966818  |
+|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv  |  GLU  |  L_sym  |  2.162756  |  5.018773%  |  3.910300  |
+
+## The result for road traffic prediction on dataset PeMSD7(M)(30 mins)
+|  Model(paper)  |  Model(code)  |  Gated activation function  |  Laplacian matrix type  |  MAE  |  MAPE  |  RMSE  |
+|  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |
+|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3 aka K=2)  |  GLU  |  L_sym  |  2.959860  |  7.226268%  |  5.334936  |
+|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv  |  GLU  |  L_sym  |  2.816108  |  6.833110%  |  5.181678  |
 
 ## The result for road traffic prediction on dataset PeMSD7(M)(45 mins)
-|  Model(paper)  |  Model(code)  |  MAE  |  MAPE  |  RMSE  |
-|  ----  |  ----  |  ----  |  ----  |  ----  |
-|  STGCN(Cheb)  |  STGCN_GC_CPA  |  3.163535  |  7.8568%  |  5.878053  |
-|  STGCN(1<sup>st</sup>)  |  STGCN_GC_LWL  |  3.099546  |  7.7346%  |  5.731380  |
+|  Model(paper)  |  Model(code)  |  Gated activation function  |  Laplacian matrix type  |  MAE  |  MAPE  |  RMSE  |
+|  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |
+|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3 aka K=2)  |  GLU  |  L_sym  |  3.388877  |  8.455504%  |  6.092015  |
+|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv  |  GLU  |  L_sym  |  3.201253  |  7.947086%  |  5.842915  |

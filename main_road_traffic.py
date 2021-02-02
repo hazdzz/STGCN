@@ -4,51 +4,49 @@ import math
 import tqdm
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+from sklearn import preprocessing
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.nn.utils as utils
 import torch.optim as optim
-
+import torch.utils as utils
 from torchsummary import summary
 
 from script import dataloader, utility, earlystopping
-from model import stgcn
+from model import models
 
 parser = argparse.ArgumentParser(description='STGCN for road traffic prediction')
 parser.add_argument('--enable_cuda', type=bool, default='True',
                     help='enable CUDA, default as True')
-parser.add_argument('--window_size', type=int, default=5,
-                    help='sampling period (mins)')
+parser.add_argument('--time_intvl', type=int, default=5,
+                    help='time interval of sampling (mins), default as 5 mins')
 parser.add_argument('--n_pred', type=int, default=9, 
-                    help='window size of the predicted period')
-parser.add_argument('--n_his', type=int, default=12, 
-                    help='window size of the historical observation')
+                    help='the number of time interval for predcition, default as 9')
 parser.add_argument('--batch_size', type=int, default=32,
                     help='batch size, defualt as 32')
-parser.add_argument('--epochs', type=int, default=200,
-                    help='epochs, default as 100')
-parser.add_argument('--gc', type=str, default='gc_cpa',
-                    help='the type of gc, default as gc_cpa (Chebyshev polynomials approximation), \
-                    gc_lwl (layer-wise linear) as alternative')
+parser.add_argument('--epochs', type=int, default=500,
+                    help='epochs, default as 500')
+parser.add_argument('--graph_conv_type', type=str, default='gcnconv',
+                    help='the type of graph convolution, default as chebconv (Graph Convolution from ChebyNet), \
+                    gcnconv (Graph Convolution from GCN) as alternative')
 parser.add_argument('--Kt', type=int, default=3,
                     help='the kernel size of causal convolution, default as 3')
 parser.add_argument('--Ks', type=int, default=3,
-                    help='the kernel size of graph convolution with Chebshev polynomials approximation, defulat as 3')
+                    help='the kernel size of graph convolution from ChebyNet, defulat as 3')
+parser.add_argument('--do_rate', type=float, default=0.2,
+                    help='dropout rate, default as 0.2')
 parser.add_argument('--opt', type=str, default='AdamW',
                     help='optimizer, default as AdamW')
-parser.add_argument('--clip_value', type=int, default=None,
-                    help='clip value for gradient clipping, default as None')
 parser.add_argument('--data_path', type=str, default='./data/road_traffic/PeMS-M/V_228.csv',
                     help='the path of road traffic data')
-parser.add_argument('--wam_path', type=str, default='./data/road_traffic/PeMS-M/W_228.csv',
+parser.add_argument('--wam_path', type=str, default='./data/road_traffic/PeMS-M/A_228.csv',
                     help='the path of weighted adjacency matrix')
-parser.add_argument('--model_stgcn_gc_cpa_save_path', type=str, default='./model/save/stgcn_gc_cpa_rt.pt',
-                    help='the save path of model STGCN(gc_cpa) for road traffic')
-parser.add_argument('--model_stgcn_gc_lwl_save_path', type=str, default='./model/save/stgcn_gc_lwl_rt.pt',
-                    help='the save path of model STGCN(gc_lwl) for road traffic')
+parser.add_argument('--mat_type', type=str, default='hat_sym_normd_lap_mat',
+                    help='the type of matrix which inside graph convolution. \
+                    wid_sym_normd_lap_mat, wid_rw_normd_lap_mat, hat_sym_normd_lap_mat, hat_rw_normd_lap_mat as listed choices, \
+                    wid_sym_normd_lap_mat and wid_rw_normd_lap_mat for ChebConv, \
+                    hat_sym_normd_lap_mat and hat_rw_normd_lap_mat for GCNConv')
 args = parser.parse_args()
 print('Training configs: {}'.format(args))
 
@@ -62,89 +60,100 @@ else:
 Kt = args.Kt
 # blocks: settings of channel size in st_conv_blocks / bottleneck design
 blocks = [[1, 32, 64], [64, 32, 128]]
-if (args.window_size % 2 == 0) or (args.window_size % 3 == 0) or (args.window_size % 5 == 0):
-    window_size = args.window_size
+if (args.time_intvl % 2 == 0) or (args.time_intvl % 3 == 0) or (args.time_intvl % 5 == 0):
+    time_intvl = args.time_intvl
 else:
-    raise ValueError(f'ERROR: window_size must be n times longer than 2, 3 or 5, "{args.window_size}" is unacceptable.')
-day_slot = int(24 * 60 / window_size)
+    raise ValueError(f'ERROR: time_intvl must be n times longer than 2, 3 or 5, "{args.time_intvl}" is unacceptable.')
+day_slot = int(24 * 60 / time_intvl)
 n_pred = args.n_pred
-# n_his must be greater or equal to n_pred
-# n_his must be greater than len(blocks) * 2 * (Kt - 1)
-if (args.n_his < n_pred) or (args.n_his - len(blocks) * 2 * (Kt - 1) <= 1):
-    raise ValueError(f'ERROR: "{args.n_his}" is unacceptable.')
-else:
-    n_his = args.n_his
+n_his = int(12)
 
 wam_path = args.wam_path
-W = dataloader.load_weighted_adjacency_matrix(wam_path)
+adj_mat = dataloader.load_weighted_adjacency_matrix(wam_path)
 
 n_train, n_val, n_test = 34, 5, 5
 len_train, len_val, len_test = n_train * day_slot, n_val * day_slot, n_test * day_slot
 data_path = args.data_path
 n_vertex_v = pd.read_csv(data_path, header=None).shape[1]
-n_vertex_w = pd.read_csv(wam_path, header=None).shape[1]
-if n_vertex_v != n_vertex_w:
+n_vertex_a = pd.read_csv(wam_path, header=None).shape[1]
+if n_vertex_v != n_vertex_a:
     raise ValueError(f'ERROR: number of vertices in dataset is not equal to number of vertices in weighted adjacency matrix.')
 else:
     n_vertex = n_vertex_v
 
-if (args.gc != "gc_cpa") and (args.gc != "gc_lwl"):
-    raise NotImplementedError(f'ERROR: "{args.gc}" is not implemented.')
+if (args.graph_conv_type != "chebconv") and (args.graph_conv_type != "gcnconv"):
+    raise NotImplementedError(f'ERROR: "{args.graph_conv_type}" is not implemented.')
 else:
-    gc = args.gc
+    graph_conv_type = args.graph_conv_type
 
-drop_prob = 0.2
-if gc == "gc_cpa":
-    # Ks is the kernel size of Chebyshev polynomials approximation, default as 3
+mat_type = args.mat_type
+dropout_rate = args.do_rate
+
+if graph_conv_type == "chebconv":
+    # Ks is the kernel size of ChebConv, default as 3
     # K_cp is the order of Chebyshev polynomials
     # K_cp + 1 = Ks
     # Because K_cp starts from 0, and Ks starts from 1 
     Ks = args.Ks
-    widetilde_L = utility.scaled_laplacian(W)
-    gc_cpa_kernel = torch.from_numpy(utility.gc_cpa_kernel(widetilde_L, Ks)).float().to(device)
-    model_stgcn_gc_cpa = stgcn.STGCN_GC_CPA(Kt, Ks, blocks, n_his, n_vertex, gc, gc_cpa_kernel, drop_prob).to(device)
-    model_stgcn_gc_cpa_save_path = args.model_stgcn_gc_cpa_save_path
-elif gc == "gc_lwl":
-    # Ks is the kernel size of Layer-Wise Linear
-    # Ks of Layer-Wise Linear must be 2
-    # For First-order Chebyshev polynomials, K_cp = 1,
-    # Ks = K_cp + 1 = 2
+    mat = utility.calculate_laplacian_metrix(adj_mat, mat_type)
+    graph_conv_filter_list = utility.calculate_chebconv_graph_filter(mat, Ks)
+    chebconv_filter_list = torch.from_numpy(graph_conv_filter_list).float().to(device)
+    stgcn_chebconv = models.STGCN_ChebConv(Kt, Ks, blocks, n_his, n_vertex, graph_conv_type, chebconv_filter_list, dropout_rate).to(device)
+    if mat_type == "wid_sym_normd_lap_mat":
+        stgcn_chebconv_save_path = './model/save/road_traffic/stgcn_chebconv_sym_glu_rt.pth'
+        early_stopping = earlystopping.EarlyStopping(patience=20, path="./model/checkpoint/road_traffic/stgcn_chebconv_sym_glu_rt_cp.pth", verbose=True)
+    elif mat_type == "wid_rw_normd_lap_mat":
+        stgcn_chebconv_save_path = './model/save/road_traffic/stgcn_chebconv_rw_glu_rt.pth'
+        early_stopping = earlystopping.EarlyStopping(patience=20, path="./model/checkpoint/road_traffic/stgcn_chebconv_rw_glu_rt_cp.pth", verbose=True)
+    else:
+        raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')
+elif graph_conv_type == "gcnconv":
+    # Ks is the kernel size of GCNConv
+    # Ks of GCNConv must be 2
     Ks = 2
-    gc_lwl_kernel = torch.from_numpy(utility.gc_lwl_kernel(W)).float().to(device)
-    model_stgcn_gc_lwl = stgcn.STGCN_GC_LWL(Kt, Ks, blocks, n_his, n_vertex, gc, gc_lwl_kernel, drop_prob).to(device)
-    model_stgcn_gc_lwl_save_path = args.model_stgcn_gc_lwl_save_path
+    mat = utility.calculate_laplacian_metrix(adj_mat, mat_type)
+    gcnconv_filter = torch.from_numpy(mat).float().to(device)
+    stgcn_gcnconv = models.STGCN_GCNConv(Kt, Ks, blocks, n_his, n_vertex, graph_conv_type, gcnconv_filter, dropout_rate).to(device)
+    if mat_type == "hat_sym_normd_lap_mat":
+        stgcn_gcnconv_save_path = './model/save/road_traffic/stgcn_gcnconv_sym_glu_rt.pth'
+        early_stopping = earlystopping.EarlyStopping(patience=20, path="./model/checkpoint/road_traffic/stgcn_gcnconv_sym_glu_rt_cp.pth", verbose=True)
+    elif mat_type == "hat_rw_normd_lap_mat":
+        stgcn_gcnconv_save_path = './model/save/road_traffic/stgcn_gcnconv_rw_glu_rt.pth'
+        early_stopping = earlystopping.EarlyStopping(patience=20, path="./model/checkpoint/road_traffic/stgcn_gcnconv_rw_glu_rt_cp.pth", verbose=True)
+    else:
+        raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')
 
 train, val, test = dataloader.load_data(data_path, len_train, len_val)
-scaler = StandardScaler()
-train = scaler.fit_transform(train)
-val = scaler.transform(val)
-test = scaler.transform(test)
+zscore = preprocessing.StandardScaler()
+train = zscore.fit_transform(train)
+val = zscore.transform(val)
+test = zscore.transform(test)
 
 x_train, y_train = dataloader.data_transform(train, n_his, n_pred, day_slot, device)
 x_val, y_val = dataloader.data_transform(val, n_his, n_pred, day_slot, device)
 x_test, y_test = dataloader.data_transform(test, n_his, n_pred, day_slot, device)
 
 bs = args.batch_size
-train_data = torch.utils.data.TensorDataset(x_train, y_train)
-train_iter = torch.utils.data.DataLoader(dataset=train_data, batch_size=bs, shuffle=False)
-val_data = torch.utils.data.TensorDataset(x_val, y_val)
-val_iter = torch.utils.data.DataLoader(dataset=val_data, batch_size=bs, shuffle=False)
-test_data = torch.utils.data.TensorDataset(x_test, y_test)
-test_iter = torch.utils.data.DataLoader(dataset=test_data, batch_size=bs, shuffle=False)
+train_data = utils.data.TensorDataset(x_train, y_train)
+train_iter = utils.data.DataLoader(dataset=train_data, batch_size=bs, shuffle=False)
+val_data = utils.data.TensorDataset(x_val, y_val)
+val_iter = utils.data.DataLoader(dataset=val_data, batch_size=bs, shuffle=False)
+test_data = utils.data.TensorDataset(x_test, y_test)
+test_iter = utils.data.DataLoader(dataset=test_data, batch_size=bs, shuffle=False)
 
 loss = nn.MSELoss()
 epochs = args.epochs
 learning_rate = 7.5e-4
-if gc == "gc_cpa":
-    model = model_stgcn_gc_cpa
-    model_save_path = model_stgcn_gc_cpa_save_path
-    model_stats = summary(model_stgcn_gc_cpa, (1, n_his, n_vertex))
-    early_stopping = earlystopping.EarlyStopping(patience=17, path="./model/checkpoint/cp_stgcn_gc_cpa_rt.pt", verbose=True)
-elif gc == "gc_lwl":
-    model = model_stgcn_gc_lwl
-    model_save_path = model_stgcn_gc_lwl_save_path
-    model_stats = summary(model_stgcn_gc_lwl, (1, n_his, n_vertex))
-    early_stopping = earlystopping.EarlyStopping(patience=17, path="./model/checkpoint/cp_stgcn_gc_lwl_rt.pt", verbose=True)
+
+if graph_conv_type == "chebconv":
+    model = stgcn_chebconv
+    model_save_path = stgcn_chebconv_save_path
+    model_stats = summary(stgcn_chebconv, (1, n_his, n_vertex))
+elif graph_conv_type == "gcnconv":
+    model = stgcn_gcnconv
+    model_save_path = stgcn_gcnconv_save_path
+    model_stats = summary(stgcn_gcnconv, (1, n_his, n_vertex))
+
 if args.opt == "RMSProp":
     optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
 elif args.opt == "Adam":
@@ -153,11 +162,8 @@ elif args.opt == "AdamW":
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
 else:
     raise ValueError(f'ERROR: optimizer "{args.opt}" is undefined.')
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.999)
-clip_value = args.clip_value
 
-def gradient_clipping():
-    utils.clip_grad_norm_(model.parameters(), clip_value)
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.999)
 
 def val():
     model.eval()
@@ -181,8 +187,6 @@ def train():
             l = loss(y_pred, y)
             optimizer.zero_grad()
             l.backward()
-            if clip_value is not None:
-                gradient_clipping()
             optimizer.step()
             scheduler.step()
             l_sum += l.item() * y.shape[0]
@@ -211,15 +215,15 @@ def train():
     print('\nTraining finished.\n')
     
 def test():
-    if gc == "gc_cpa":
-        best_model = stgcn.STGCN_GC_CPA(Kt, Ks, blocks, n_his, n_vertex, gc, gc_cpa_kernel, drop_prob).to(device)
-    elif gc == "gc_lwl":
-        best_model = stgcn.STGCN_GC_LWL(Kt, Ks, blocks, n_his, n_vertex, gc, gc_lwl_kernel, drop_prob).to(device)
+    if graph_conv_type == "chebconv":
+        best_model = stgcn_chebconv
+    elif graph_conv_type == "gcnconv":
+        best_model = stgcn_gcnconv
     best_model.load_state_dict(torch.load(model_save_path))
     test_MSE = utility.evaluate_model(best_model, loss, test_iter)
     print('Test loss {:.6f}'.format(test_MSE))
-    test_MAE, test_RMSE, test_MAPE = utility.evaluate_metric(best_model, test_iter, scaler)
-    print('MAE {:.6f} | RMSE {:.6f} | MAPE {:.8f}'.format(test_MAE, test_RMSE, test_MAPE))
+    test_MAE, test_MAPE, test_RMSE = utility.evaluate_metric(best_model, test_iter, zscore)
+    print('MAE {:.6f} | MAPE {:.8f} | RMSE {:.6f}'.format(test_MAE, test_MAPE, test_RMSE))
 
 if __name__ == "__main__":
     train()
