@@ -13,13 +13,13 @@ class Align(nn.Module):
 
     def forward(self, x):
         if self.c_in > self.c_out:
-            x_self = self.conv1x1(x)
+            x_align = self.conv1x1(x)
         elif self.c_in < self.c_out:
             batch_size, c, timestep, n_vertex = x.shape
-            x_self = torch.cat([x, torch.zeros([batch_size, self.c_out - c, timestep, n_vertex]).to(x)], dim = 1)
+            x_align = torch.cat([x, torch.zeros([batch_size, self.c_out - c, timestep, n_vertex]).to(x)], dim = 1)
         else:
-            x_self = x
-        return x_self
+            x_align = x
+        return x_align
 
 class TemporalConvLayer(nn.Module):
 
@@ -49,15 +49,15 @@ class TemporalConvLayer(nn.Module):
         self.relu = nn.ReLU()
 
     def forward(self, x):   
-        x_input = self.align(x)[:, :, self.Kt - 1:, :]
+        x_align = self.align(x)[:, :, self.Kt - 1:, :]
         x_conv = self.conv(x)
 
         if self.act_func == "GLU":
             # Temporal Convolution Layer (GLU)
             P = x_conv[:, : self.c_out, :, :]
             Q = x_conv[:, -self.c_out:, :, :]
-            P_with_rc = P + x_input
-            # (P + x_input) ⊙ Sigmoid(Q)
+            P_with_rc = P + x_align
+            # (P + x_align) ⊙ Sigmoid(Q)
             x_glu = P_with_rc * self.sigmoid(Q)
             x_tc_out = x_glu
         elif self.act_func == "Sigmoid":
@@ -66,7 +66,7 @@ class TemporalConvLayer(nn.Module):
             x_tc_out = x_sigmoid
         elif self.act_func == "ReLU":
             # Temporal Convolution Layer (ReLU)
-            x_relu = self.relu(x_conv + x_input)
+            x_relu = self.relu(x_conv + x_align)
             x_tc_out = x_relu
         elif self.act_func == "Linear":
             # Temporal Convolution Layer (Linear)
