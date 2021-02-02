@@ -23,7 +23,7 @@ def calculate_laplacian_metrix(adj_mat, mat_type):
     lambda_max_sym = eigs(sym_normd_lap_mat, k=1, which='LR')[0][0].real
     wid_sym_normd_lap_mat = 2 * sym_normd_lap_mat / lambda_max_sym - id_mat
 
-    # For GCNConv or GCNIIConv
+    # For GCNConv
     wid_deg_mat = deg_mat + id_mat
     wid_adj_mat = adj_mat + id_mat
     hat_sym_normd_lap_mat = np.matmul(np.matmul(fractional_matrix_power(wid_deg_mat, -0.5), wid_adj_mat), fractional_matrix_power(wid_deg_mat, -0.5))
