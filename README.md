@@ -21,17 +21,17 @@ https://arxiv.org/abs/1709.04875
 ## The result for road traffic prediction on dataset PeMSD7(M)(15 mins)
 |  Model(paper)  |  Model(code)  |  Gated activation function  |  Laplacian matrix type  |  MAE  |  MAPE  |  RMSE  |
 |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |
-|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3 aka K=2)  |  GLU  |  L_sym  |  2.219458  |  5.137035%  |  3.966818  |
+|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3)  |  GLU  |  L_sym  |  2.219458  |  5.137035%  |  3.966818  |
 |  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv  |  GLU  |  L_sym  |  2.162756  |  5.018773%  |  3.910300  |
 
 ## The result for road traffic prediction on dataset PeMSD7(M)(30 mins)
 |  Model(paper)  |  Model(code)  |  Gated activation function  |  Laplacian matrix type  |  MAE  |  MAPE  |  RMSE  |
 |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |
-|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3 aka K=2)  |  GLU  |  L_sym  |  2.959860  |  7.226268%  |  5.334936  |
+|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3)  |  GLU  |  L_sym  |  2.959860  |  7.226268%  |  5.334936  |
 |  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv  |  GLU  |  L_sym  |  2.816108  |  6.833110%  |  5.181678  |
 
 ## The result for road traffic prediction on dataset PeMSD7(M)(45 mins)
 |  Model(paper)  |  Model(code)  |  Gated activation function  |  Laplacian matrix type  |  MAE  |  MAPE  |  RMSE  |
 |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |
-|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3 aka K=2)  |  GLU  |  L_sym  |  3.388877  |  8.455504%  |  6.092015  |
+|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3)  |  GLU  |  L_sym  |  3.388877  |  8.455504%  |  6.092015  |
 |  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv  |  GLU  |  L_sym  |  3.201253  |  7.947086%  |  5.842915  |
