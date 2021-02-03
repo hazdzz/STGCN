@@ -182,10 +182,10 @@ class STConvBlock(nn.Module):
     # T: Temporal Convolution Layer (ReLU)
     # N: Layer Normolization
 
-    def __init__(self, Kt, Ks, n_vertex, channel, gc, graph_conv_filter, drop_prob):
+    def __init__(self, Kt, Ks, n_vertex, channel, graph_conv_type, graph_conv_filter, drop_prob):
         super(STConvBlock, self).__init__()
         self.tmp_conv1 = TemporalConvLayer(Kt, channel[0], channel[1], "GLU")
-        self.spat_conv = SpatialConvLayer(Ks, channel[1], channel[1], gc, graph_conv_filter)
+        self.spat_conv = SpatialConvLayer(Ks, channel[1], channel[1], graph_conv_type, graph_conv_filter)
         self.tmp_conv2 = TemporalConvLayer(Kt, channel[1], channel[2], "ReLU")
         self.relu = nn.ReLU()
         #self.ln1 = nn.LayerNorm([n_vertex, channel[1]])
