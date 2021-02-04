@@ -1,6 +1,6 @@
 # Spatio-Temporal Graph Convolutional Networks
 The PyTorch version of STGCN implemented by the paper *Spatio-Temporal Graph Convolutional Networks:
-A Deep Learning Framework for Traffic Forecasting*
+A Deep Learning Framework for Traffic Forecasting* with tons of bugs fixed
 
 ## Paper
 https://arxiv.org/abs/1709.04875
@@ -9,26 +9,27 @@ https://arxiv.org/abs/1709.04875
 <img src="./figure/stgcn_model_structure.png" style="zoom:100%" />
 
 ## Differents of code between mine and author's
-1. Fix bugs 
+1. Fix tons of bugs 
 2. Add Early Stopping approach
 3. Add Dropout approach
 4. Offer a better set of hyperparameters
+5. Offer config files for two different categories graph convolution
 
 ## The result for road traffic prediction on dataset PeMSD7(M)(15/30/45 mins)
-### 15 mins
+### 15 mins (H=3)
 |  Model(paper)  |  Model(code)  |  Laplacian matrix type  |  Gated activation function  |  MAE  |  MAPE  |  RMSE  |
 |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |
-|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3)  |  sym  |  GLU  |  2.219458  |  5.137035%  |  3.966818  |
-|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv  |  sym  |  GLU  |  2.162756  |  5.018773%  |  3.910300  |
+|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3)  |  sym  |  GLU  |  2.203283  |  5.159329%  |  3.944862  |
+|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv  |  sym  |  GLU  |  2.191923  |  5.097812%  |  3.940933  |
 
-### 30 mins
+### 30 mins (H=6)
 |  Model(paper)  |  Model(code)  |  Laplacian matrix type  |  Gated activation function  |  MAE  |  MAPE  |  RMSE  |
 |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |
-|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3)  |  sym  |  GLU  |  2.959860  |  7.226268%  |  5.334936  |
-|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv  |  sym  |  GLU  |  2.816108  |  6.833110%  |  5.181678  |
+|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3)  |  sym  |  GLU  |  2.898282  |  7.175031%  |  5.300563  |
+|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv  |  sym  |  GLU  |  2.857253  |  6.969964%  |  5.204885  |
 
-### 45 mins
+### 45 mins (H=9)
 |  Model(paper)  |  Model(code)  |  Laplacian matrix type  |  Gated activation function  |  MAE  |  MAPE  |  RMSE  |
 |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |
-|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3)  |  sym  |  GLU  |  3.388877  |  8.455504%  |  6.092015  |
-|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv  |  sym  |  GLU  |  3.201253  |  7.947086%  |  5.842915  |
+|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3)  |  sym  |  GLU  |  3.224847  |  8.084734%  |  5.938307  |
+|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv  |  sym  |  GLU  |  3.220803  |  8.033510%  |  5.877929  |
