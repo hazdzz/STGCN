@@ -14,20 +14,21 @@ https://arxiv.org/abs/1709.04875
 3. Add Dropout approach
 4. Offer a better set of hyperparameters
 
-## The result for road traffic prediction on dataset PeMSD7(M)(15 mins)
-|  Model(paper)  |  Model(code)  |  Gated activation function  |  Laplacian matrix type  |  MAE  |  MAPE  |  RMSE  |
+## The result for road traffic prediction on dataset PeMSD7(M)(15/30/45 mins)
+### 15 mins
+|  Model(paper)  |  Model(code)  |  Laplacian matrix type  |  Gated activation function  |  MAE  |  MAPE  |  RMSE  |
 |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |
-|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3)  |  GLU  |  L_sym  |  2.219458  |  5.137035%  |  3.966818  |
-|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv  |  GLU  |  L_sym  |  2.162756  |  5.018773%  |  3.910300  |
+|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3)  |  sym  |  GLU  |  2.219458  |  5.137035%  |  3.966818  |
+|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv  |  sym  |  GLU  |  2.162756  |  5.018773%  |  3.910300  |
 
-## The result for road traffic prediction on dataset PeMSD7(M)(30 mins)
-|  Model(paper)  |  Model(code)  |  Gated activation function  |  Laplacian matrix type  |  MAE  |  MAPE  |  RMSE  |
+### 30 mins
+|  Model(paper)  |  Model(code)  |  Laplacian matrix type  |  Gated activation function  |  MAE  |  MAPE  |  RMSE  |
 |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |
-|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3)  |  GLU  |  L_sym  |  2.959860  |  7.226268%  |  5.334936  |
-|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv  |  GLU  |  L_sym  |  2.816108  |  6.833110%  |  5.181678  |
+|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3)  |  sym  |  GLU  |  2.959860  |  7.226268%  |  5.334936  |
+|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv  |  sym  |  GLU  |  2.816108  |  6.833110%  |  5.181678  |
 
-## The result for road traffic prediction on dataset PeMSD7(M)(45 mins)
-|  Model(paper)  |  Model(code)  |  Gated activation function  |  Laplacian matrix type  |  MAE  |  MAPE  |  RMSE  |
+### 45 mins
+|  Model(paper)  |  Model(code)  |  Laplacian matrix type  |  Gated activation function  |  MAE  |  MAPE  |  RMSE  |
 |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |
-|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3)  |  GLU  |  L_sym  |  3.388877  |  8.455504%  |  6.092015  |
-|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv  |  GLU  |  L_sym  |  3.201253  |  7.947086%  |  5.842915  |
+|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3)  |  sym  |  GLU  |  3.388877  |  8.455504%  |  6.092015  |
+|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv  |  sym  |  GLU  |  3.201253  |  7.947086%  |  5.842915  |

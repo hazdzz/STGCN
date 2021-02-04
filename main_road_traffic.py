@@ -1,6 +1,7 @@
+import logging
 import os
 import argparse
-import math
+import configparser
 import tqdm
 import numpy as np
 import pandas as pd
@@ -11,10 +12,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils as utils
+
 from torchsummary import summary
 
 from script import dataloader, utility, earlystopping
 from model import models
+
+logging.basicConfig(level=logging.INFO)
 
 parser = argparse.ArgumentParser(description='STGCN for road traffic prediction')
 parser.add_argument('--enable_cuda', type=bool, default='True',
@@ -22,19 +26,17 @@ parser.add_argument('--enable_cuda', type=bool, default='True',
 parser.add_argument('--time_intvl', type=int, default=5,
                     help='time interval of sampling (mins), default as 5 mins')
 parser.add_argument('--n_pred', type=int, default=9, 
-                    help='the number of time interval for predcition, default as 9')
+                    help='the number of time interval for predcition, default as 9 (literally means 45 mins)')
 parser.add_argument('--batch_size', type=int, default=32,
                     help='batch size, defualt as 32')
 parser.add_argument('--epochs', type=int, default=500,
                     help='epochs, default as 500')
-parser.add_argument('--graph_conv_type', type=str, default='gcnconv',
-                    help='the type of graph convolution, default as chebconv (Graph Convolution from ChebyNet), \
-                    gcnconv (Graph Convolution from GCN) as alternative')
 parser.add_argument('--Kt', type=int, default=3,
                     help='the kernel size of causal convolution, default as 3')
-parser.add_argument('--Ks', type=int, default=3,
-                    help='the kernel size of graph convolution from ChebyNet, defulat as 3')
-parser.add_argument('--do_rate', type=float, default=0.2,
+parser.add_argument('--config_path', type=str, default='./config/chebconv_sym_glu.ini',
+                    help='the path of config file, chebconv_sym_glu.ini for STGCN(ChebConv, Ks=3), \
+                    and gcnconv_sym_glu.ini for STGCN(GCNConv)')
+parser.add_argument('--dropout_rate', type=float, default=0.2,
                     help='dropout rate, default as 0.2')
 parser.add_argument('--opt', type=str, default='AdamW',
                     help='optimizer, default as AdamW')
@@ -42,11 +44,6 @@ parser.add_argument('--data_path', type=str, default='./data/road_traffic/PeMS-M
                     help='the path of road traffic data')
 parser.add_argument('--wam_path', type=str, default='./data/road_traffic/PeMS-M/A_228.csv',
                     help='the path of weighted adjacency matrix')
-parser.add_argument('--mat_type', type=str, default='hat_sym_normd_lap_mat',
-                    help='the type of matrix which inside graph convolution. \
-                    wid_sym_normd_lap_mat, wid_rw_normd_lap_mat, hat_sym_normd_lap_mat, hat_rw_normd_lap_mat as listed choices, \
-                    wid_sym_normd_lap_mat and wid_rw_normd_lap_mat for ChebConv, \
-                    hat_sym_normd_lap_mat and hat_rw_normd_lap_mat for GCNConv')
 args = parser.parse_args()
 print('Training configs: {}'.format(args))
 
@@ -56,10 +53,39 @@ if args.enable_cuda and torch.cuda.is_available():
 else:
     device = torch.device("cpu")
 
+config = configparser.ConfigParser()
+config_path = args.config_path
+config.read(config_path, encoding="utf-8")
+
+def ConfigSectionMap(section):
+    dict1 = {}
+    options = config.options(section)
+    for option in options:
+        try:
+            dict1[option] = config.get(section, option)
+            if dict1[option] == -1:
+                logging.debug("skip: %s" % option)
+        except:
+            print("exception on %s!" % option)
+            dict1[option] = None
+    return dict1
+
+graph_conv_type = ConfigSectionMap('graphconv')['graph_conv_type']
+if (graph_conv_type != "chebconv") and (graph_conv_type != "gcnconv"):
+    raise NotImplementedError(f'ERROR: "{graph_conv_type}" is not implemented.')
+else:
+    graph_conv_type = graph_conv_type
+Ks = int(ConfigSectionMap('graphconv')['ks'])
+if (graph_conv_type == 'gcnconv') and (Ks != 2):
+    Ks = 2
+mat_type = ConfigSectionMap('graphconv')['mat_type']
+checkpoint_path = ConfigSectionMap('graphconv')['checkpoint_path']
+model_save_path = ConfigSectionMap('graphconv')['model_save_path']
+
 # Kt is the kernel size of casual convolution, default as 3
 Kt = args.Kt
 # blocks: settings of channel size in st_conv_blocks / bottleneck design
-blocks = [[1, 32, 64], [64, 32, 128]]
+blocks = [[1, 64, 32, 64], [64, 64, 32, 64], [64, 128, 64, 128]]
 if (args.time_intvl % 2 == 0) or (args.time_intvl % 3 == 0) or (args.time_intvl % 5 == 0):
     time_intvl = args.time_intvl
 else:
@@ -81,46 +107,26 @@ if n_vertex_v != n_vertex_a:
 else:
     n_vertex = n_vertex_v
 
-if (args.graph_conv_type != "chebconv") and (args.graph_conv_type != "gcnconv"):
-    raise NotImplementedError(f'ERROR: "{args.graph_conv_type}" is not implemented.')
-else:
-    graph_conv_type = args.graph_conv_type
-
-mat_type = args.mat_type
-dropout_rate = args.do_rate
+dropout_rate = args.dropout_rate
 
 if graph_conv_type == "chebconv":
     # Ks is the kernel size of ChebConv, default as 3
     # K_cp is the order of Chebyshev polynomials
     # K_cp + 1 = Ks
-    # Because K_cp starts from 0, and Ks starts from 1 
-    Ks = args.Ks
+    # Because K_cp starts from 0, and Ks starts from 1
     mat = utility.calculate_laplacian_metrix(adj_mat, mat_type)
     graph_conv_filter_list = utility.calculate_chebconv_graph_filter(mat, Ks)
     chebconv_filter_list = torch.from_numpy(graph_conv_filter_list).float().to(device)
     stgcn_chebconv = models.STGCN_ChebConv(Kt, Ks, blocks, n_his, n_vertex, graph_conv_type, chebconv_filter_list, dropout_rate).to(device)
-    if mat_type == "wid_sym_normd_lap_mat":
-        stgcn_chebconv_save_path = './model/save/road_traffic/stgcn_chebconv_sym_glu_rt.pth'
-        early_stopping = earlystopping.EarlyStopping(patience=20, path="./model/checkpoint/road_traffic/stgcn_chebconv_sym_glu_rt_cp.pth", verbose=True)
-    elif mat_type == "wid_rw_normd_lap_mat":
-        stgcn_chebconv_save_path = './model/save/road_traffic/stgcn_chebconv_rw_glu_rt.pth'
-        early_stopping = earlystopping.EarlyStopping(patience=20, path="./model/checkpoint/road_traffic/stgcn_chebconv_rw_glu_rt_cp.pth", verbose=True)
-    else:
+    if (mat_type != "wid_sym_normd_lap_mat") and (mat_type != "wid_rw_normd_lap_mat"):
         raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')
 elif graph_conv_type == "gcnconv":
     # Ks is the kernel size of GCNConv
     # Ks of GCNConv must be 2
-    Ks = 2
     mat = utility.calculate_laplacian_metrix(adj_mat, mat_type)
     gcnconv_filter = torch.from_numpy(mat).float().to(device)
     stgcn_gcnconv = models.STGCN_GCNConv(Kt, Ks, blocks, n_his, n_vertex, graph_conv_type, gcnconv_filter, dropout_rate).to(device)
-    if mat_type == "hat_sym_normd_lap_mat":
-        stgcn_gcnconv_save_path = './model/save/road_traffic/stgcn_gcnconv_sym_glu_rt.pth'
-        early_stopping = earlystopping.EarlyStopping(patience=20, path="./model/checkpoint/road_traffic/stgcn_gcnconv_sym_glu_rt_cp.pth", verbose=True)
-    elif mat_type == "hat_rw_normd_lap_mat":
-        stgcn_gcnconv_save_path = './model/save/road_traffic/stgcn_gcnconv_rw_glu_rt.pth'
-        early_stopping = earlystopping.EarlyStopping(patience=20, path="./model/checkpoint/road_traffic/stgcn_gcnconv_rw_glu_rt_cp.pth", verbose=True)
-    else:
+    if (mat_type != "hat_sym_normd_lap_mat") and (mat_type != "hat_rw_normd_lap_mat"):
         raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')
 
 train, val, test = dataloader.load_data(data_path, len_train, len_val)
@@ -144,14 +150,13 @@ test_iter = utils.data.DataLoader(dataset=test_data, batch_size=bs, shuffle=Fals
 loss = nn.MSELoss()
 epochs = args.epochs
 learning_rate = 7.5e-4
+early_stopping = earlystopping.EarlyStopping(patience=20, path=checkpoint_path, verbose=True)
 
 if graph_conv_type == "chebconv":
     model = stgcn_chebconv
-    model_save_path = stgcn_chebconv_save_path
     model_stats = summary(stgcn_chebconv, (1, n_his, n_vertex))
 elif graph_conv_type == "gcnconv":
     model = stgcn_gcnconv
-    model_save_path = stgcn_gcnconv_save_path
     model_stats = summary(stgcn_gcnconv, (1, n_his, n_vertex))
 
 if args.opt == "RMSProp":

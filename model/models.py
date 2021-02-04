@@ -25,9 +25,9 @@ class STGCN_ChebConv(nn.Module):
         super(STGCN_ChebConv, self).__init__()
         self.st_block1 = layers.STConvBlock(Kt, Ks, n_vertex, blocks[0], graph_conv_type, chebconv_filter_list, dropout_rate)
         self.st_block2 = layers.STConvBlock(Kt, Ks, n_vertex, blocks[1], graph_conv_type, chebconv_filter_list, dropout_rate)
-        Ko = T - len(blocks) * 2 * (Kt - 1)
+        Ko = T - (len(blocks) - 1) * 2 * (Kt - 1)
         if Ko > 1:
-            self.output = layers.OutputLayer(blocks[-1][-1], Ko, n_vertex)
+            self.output = layers.OutputLayer(blocks[-1], Ko, n_vertex, dropout_rate)
         else:
             raise ValueError(f'ERROR: kernel size Ko must be greater than 1, but received "{Ko}".')
 
@@ -59,9 +59,9 @@ class STGCN_GCNConv(nn.Module):
         super(STGCN_GCNConv, self).__init__()
         self.st_block1 = layers.STConvBlock(Kt, Ks, n_vertex, blocks[0], graph_conv_type, gcnconv_filter, dropout_rate)
         self.st_block2 = layers.STConvBlock(Kt, Ks, n_vertex, blocks[1], graph_conv_type, gcnconv_filter, dropout_rate)
-        Ko = T - len(blocks) * 2 * (Kt - 1)
+        Ko = T - (len(blocks) - 1) * 2 * (Kt - 1)
         if Ko > 1:
-            self.output = layers.OutputLayer(blocks[-1][-1], Ko, n_vertex)
+            self.output = layers.OutputLayer(blocks[-1], Ko, n_vertex, dropout_rate)
         else:
             raise ValueError(f'ERROR: kernel size Ko must be greater than 1, but received "{Ko}".')
 
