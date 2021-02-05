@@ -58,7 +58,7 @@ class TemporalConvLayer(nn.Module):
             P = x_conv[:, : self.c_out, :, :]
             Q = x_conv[:, -self.c_out:, :, :]
             P_with_rc = P + x_in
-            # (P + x_align) ⊙ Sigmoid(Q)
+            # (P + x_in) ⊙ Sigmoid(Q)
             x_glu = torch.mul(P_with_rc, self.sigmoid(Q))
             x_tc_out = x_glu
         
