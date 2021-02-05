@@ -5,6 +5,10 @@ from model import layers
 
 class STGCN_ChebConv(nn.Module):
     # STGCN(ChebConv) contains 'TSTN TSTN TNTF' structure
+    # ChebConv is the graph convolution from ChebyNet.
+    # Using the Chebyshev polynomials of the first kind to
+    # approximate graph convolution kernel from Spectral CNN.
+    # https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/nn/conv/cheb_conv.html#ChebConv
         
     # T: Temporal Convolution Layer (GLU)
     # S: Spitial Graph Convolution Layer (ChebConv)
@@ -39,6 +43,8 @@ class STGCN_ChebConv(nn.Module):
 
 class STGCN_GCNConv(nn.Module):
     # STGCN(GCNConv) contains 'TSTN TSTN TNTF' structure
+    # GCNConv is the graph convolution from GCN.
+    # https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/nn/conv/gcn_conv.html#GCNConv
         
     # T: Temporal Convolution Layer (GLU)
     # S: Spitial Graph Convolution Layer (GCNConv)
