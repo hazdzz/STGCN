@@ -11,12 +11,12 @@ class STGCN_ChebConv(nn.Module):
     # https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/nn/conv/cheb_conv.html#ChebConv
         
     # T: Temporal Convolution Layer (GLU)
-    # S: Spitial Graph Convolution Layer (ChebConv)
+    # S: Spitial Convolution Layer (ChebConv)
     # T: Temporal Convolution Layer (ReLU)
     # N: Layer Normolization
 
     # T: Temporal Convolution Layer (GLU)
-    # S: Spitial Graph Convolution Layer (ChebConv)
+    # S: Spitial Convolution Layer (ChebConv)
     # T: Temporal Convolution Layer (ReLU)
     # N: Layer Normolization
 
@@ -47,12 +47,12 @@ class STGCN_GCNConv(nn.Module):
     # https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/nn/conv/gcn_conv.html#GCNConv
         
     # T: Temporal Convolution Layer (GLU)
-    # S: Spitial Graph Convolution Layer (GCNConv)
+    # S: Spitial Convolution Layer (GCNConv)
     # T: Temporal Convolution Layer (ReLU)
     # N: Layer Normolization
 
     # T: Temporal Convolution Layer (GLU)
-    # S: Spitial Graph Convolution Layer (GCNConv)
+    # S: Spitial Convolution Layer (GCNConv)
     # T: Temporal Convolution Layer (ReLU)
     # N: Layer Normolization
 
