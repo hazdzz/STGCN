@@ -52,28 +52,33 @@ class TemporalConvLayer(nn.Module):
         x_align = self.align(x)[:, :, self.Kt - 1:, :]
         x_conv = self.conv(x)
 
+        # Temporal Convolution Layer (GLU)
         if self.act_func == "GLU":
-            # Temporal Convolution Layer (GLU)
             P = x_conv[:, : self.c_out, :, :]
             Q = x_conv[:, -self.c_out:, :, :]
             P_with_rc = P + x_align
             # (P + x_align) ⊙ Sigmoid(Q)
             x_glu = P_with_rc * self.sigmoid(Q)
             x_tc_out = x_glu
+        
+        # Temporal Convolution Layer (Sigmoid)
         elif self.act_func == "Sigmoid":
-            # Temporal Convolution Layer (Sigmoid)
             x_sigmoid = self.sigmoid(x_conv)
             x_tc_out = x_sigmoid
+        
+        # Temporal Convolution Layer (ReLU)
         elif self.act_func == "ReLU":
-            # Temporal Convolution Layer (ReLU)
             x_relu = self.relu(x_conv + x_align)
             x_tc_out = x_relu
+        
+        # Temporal Convolution Layer (Linear)
         elif self.act_func == "Linear":
-            # Temporal Convolution Layer (Linear)
             x_linear = x_conv
             x_tc_out = x_linear
+        
         else:
             raise ValueError(f'ERROR: activation function "{act_func}" is not defined.')
+        
         return x_tc_out
 
 class ChebConv(nn.Module):
@@ -111,6 +116,7 @@ class ChebConv(nn.Module):
             x_chebconv = x_second_mul + self.bias
         else:
             x_chebconv = x_second_mul
+        
         return x_chebconv
 
 class GCNConv(nn.Module):
@@ -147,6 +153,7 @@ class GCNConv(nn.Module):
             x_gcnconv_out = x_second_mul + self.bias
         else:
             x_gcnconv_out = x_second_mul
+        
         return x_gcnconv_out
 
 class SpatialConvLayer(nn.Module):
