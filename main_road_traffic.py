@@ -25,7 +25,7 @@ parser.add_argument('--enable_cuda', type=bool, default='True',
                     help='enable CUDA, default as True')
 parser.add_argument('--time_intvl', type=int, default=5,
                     help='time interval of sampling (mins), default as 5 mins')
-parser.add_argument('--n_pred', type=int, default=3, 
+parser.add_argument('--n_pred', type=int, default=9, 
                     help='the number of time interval for predcition, default as 9 (literally means 45 mins)')
 parser.add_argument('--batch_size', type=int, default=32,
                     help='batch size, defualt as 32')
@@ -33,7 +33,7 @@ parser.add_argument('--epochs', type=int, default=500,
                     help='epochs, default as 500')
 parser.add_argument('--Kt', type=int, default=3,
                     help='the kernel size of causal convolution, default as 3')
-parser.add_argument('--config_path', type=str, default='./config/gcnconv_sym_glu.ini',
+parser.add_argument('--config_path', type=str, default='./config/chebconv_sym_glu.ini',
                     help='the path of config file, chebconv_sym_glu.ini for STGCN(ChebConv, Ks=3), \
                     and gcnconv_sym_glu.ini for STGCN(GCNConv)')
 parser.add_argument('--dropout_rate', type=float, default=0.2,
