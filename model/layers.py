@@ -225,15 +225,15 @@ class STConvBlock(nn.Module):
         x_st_conv_out = x_spat_do
         return x_st_conv_out
 
-class OutputLayer(nn.Module):
-    # output layer contains 'TNTF' structure
+class OutputBlock(nn.Module):
+    # Output block contains 'TNTF' structure
     # T: Temporal Convolution Layer (GLU)
     # N: Layer Normalization
     # T: Temporal Convolution Layer (Sigmoid)
     # F: Fully-Connected Layer
 
     def __init__(self, channel, T, n_vertex, dropout_rate):
-        super(OutputLayer, self).__init__()
+        super(OutputBlock, self).__init__()
         self.tmp_conv1 = TemporalConvLayer(T, channel[0], channel[1], "glu")
         self.ln_tc1 = nn.LayerNorm([n_vertex, channel[1]])
         self.tmp_conv2 = TemporalConvLayer(1, channel[1], channel[2], "sigmoid")
