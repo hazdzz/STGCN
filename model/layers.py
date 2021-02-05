@@ -49,14 +49,15 @@ class TemporalConvLayer(nn.Module):
         self.relu = nn.ReLU()
 
     def forward(self, x):   
-        x_align = self.align(x)[:, :, self.Kt - 1:, :]
+        x_align = self.align(x)
+        x_in = x_align[:, :, self.Kt - 1:, :]
         x_conv = self.conv(x)
 
         # Temporal Convolution Layer (GLU)
         if self.act_func == "GLU":
             P = x_conv[:, : self.c_out, :, :]
             Q = x_conv[:, -self.c_out:, :, :]
-            P_with_rc = P + x_align
+            P_with_rc = P + x_in
             # (P + x_align) ⊙ Sigmoid(Q)
             x_glu = torch.mul(P_with_rc, self.sigmoid(Q))
             x_tc_out = x_glu
@@ -68,7 +69,7 @@ class TemporalConvLayer(nn.Module):
         
         # Temporal Convolution Layer (ReLU)
         elif self.act_func == "ReLU":
-            x_relu = self.relu(x_conv + x_align)
+            x_relu = self.relu(x_conv + x_in)
             x_tc_out = x_relu
         
         # Temporal Convolution Layer (Linear)
