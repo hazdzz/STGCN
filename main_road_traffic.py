@@ -25,14 +25,15 @@ parser.add_argument('--enable_cuda', type=bool, default='True',
                     help='enable CUDA, default as True')
 parser.add_argument('--time_intvl', type=int, default=5,
                     help='time interval of sampling (mins), default as 5 mins')
-parser.add_argument('--n_pred', type=int, default=9, 
+parser.add_argument('--n_pred', type=int, default=12, 
                     help='the number of time interval for predcition, default as 9 (literally means 45 mins)')
 parser.add_argument('--batch_size', type=int, default=32,
                     help='batch size, defualt as 32')
 parser.add_argument('--epochs', type=int, default=500,
                     help='epochs, default as 500')
 parser.add_argument('--Kt', type=int, default=3,
-                    help='the kernel size of causal convolution, default as 3')
+                    help='the kernel size of causal convolution, default as 3, \
+                    Kt = 2 as an alternative')
 parser.add_argument('--config_path', type=str, default='./config/chebconv_sym_glu.ini',
                     help='the path of config file, chebconv_sym_glu.ini for STGCN(ChebConv, Ks=3), \
                     and gcnconv_sym_glu.ini for STGCN(GCNConv)')
@@ -70,6 +71,11 @@ def ConfigSectionMap(section):
             dict1[option] = None
     return dict1
 
+Kt = int(ConfigSectionMap('casualconv')['kt'])
+if (Kt != 2) and (Kt != 3):
+    raise ValueError(f'ERROR: Kt must be 2 or 3, "{Kt}" is unacceptable, unless you rewrite the code.')
+else:
+    Kt = Kt
 graph_conv_type = ConfigSectionMap('graphconv')['graph_conv_type']
 if (graph_conv_type != "chebconv") and (graph_conv_type != "gcnconv"):
     raise NotImplementedError(f'ERROR: "{graph_conv_type}" is not implemented.')
@@ -80,7 +86,6 @@ if (graph_conv_type == 'gcnconv') and (Ks != 2):
     Ks = 2
 mat_type = ConfigSectionMap('graphconv')['mat_type']
 
-Kt = args.Kt
 # blocks: settings of channel size in st_conv_blocks and output layer,
 # using the bottleneck design in st_conv_blocks
 blocks = [[1, 64, 16, 64], [64, 64, 16, 64], [64, 128, 128, 128]]
