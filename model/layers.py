@@ -9,7 +9,7 @@ class Align(nn.Module):
         super(Align, self).__init__()
         self.c_in = c_in
         self.c_out = c_out
-        self.conv1x1 = nn.Conv2d(self.c_in, self.c_out, (1, 1))
+        self.conv1x1 = nn.Conv2d(c_in, c_out, (1, 1))
 
     def forward(self, x):
         if self.c_in > self.c_out:
