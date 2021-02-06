@@ -111,7 +111,7 @@ class ChebConv(nn.Module):
 
         x_before_first_mul = x.reshape(-1, c_in)
         x_first_mul = torch.mm(x_before_first_mul, self.weight.reshape(c_in, -1)).reshape(n_vertex * self.Ks, -1)
-        x_second_mul = torch.spmm(self.chebconv_filter, x_first_mul).reshape(-1, self.c_out)
+        x_second_mul = torch.mm(self.chebconv_filter, x_first_mul).reshape(-1, self.c_out)
 
         if self.bias is not None:
             x_chebconv = x_second_mul + self.bias
