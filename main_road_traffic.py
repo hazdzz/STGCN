@@ -2,6 +2,7 @@ import logging
 import os
 import argparse
 import configparser
+import random
 import tqdm
 import numpy as np
 import pandas as pd
@@ -22,6 +23,7 @@ logging.basicConfig(level=logging.INFO)
 
 # For stable experiment results
 SEED = 2333
+random.seed(SEED)
 np.random.seed(SEED)
 torch.manual_seed(SEED)
 torch.cuda.manual_seed(SEED)
