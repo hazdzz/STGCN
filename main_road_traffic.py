@@ -42,8 +42,8 @@ parser.add_argument('--epochs', type=int, default=500,
 parser.add_argument('--config_path', type=str, default='./config/chebconv_sym_glu.ini',
                     help='the path of config file, chebconv_sym_glu.ini for STGCN(ChebConv, Ks=3), \
                     and gcnconv_sym_glu.ini for STGCN(GCNConv)')
-parser.add_argument('--dropout_rate', type=float, default=0.2,
-                    help='dropout rate, default as 0.2')
+parser.add_argument('--drop_rate', type=float, default=0.2,
+                    help='drop rate for dropout, it is not the keep rate, default as 0.2')
 parser.add_argument('--opt', type=str, default='AdamW',
                     help='optimizer, default as AdamW')
 parser.add_argument('--data_path', type=str, default='./data/road_traffic/PeMS-M/V_228.csv',
@@ -122,19 +122,19 @@ if n_vertex_v != n_vertex_a:
 else:
     n_vertex = n_vertex_v
 
-dropout_rate = args.dropout_rate
+drop_rate = args.drop_rate
 
 if graph_conv_type == "chebconv":
     mat = utility.calculate_laplacian_metrix(adj_mat, mat_type)
     graph_conv_filter_list = utility.calculate_chebconv_graph_filter(mat, Ks)
     chebconv_filter_list = torch.from_numpy(graph_conv_filter_list).float().to(device)
-    stgcn_chebconv = models.STGCN_ChebConv(Kt, Ks, blocks, n_his, n_vertex, graph_conv_type, chebconv_filter_list, dropout_rate).to(device)
+    stgcn_chebconv = models.STGCN_ChebConv(Kt, Ks, blocks, n_his, n_vertex, graph_conv_type, chebconv_filter_list, drop_rate).to(device)
     if (mat_type != "wid_sym_normd_lap_mat") and (mat_type != "wid_rw_normd_lap_mat"):
         raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')
 elif graph_conv_type == "gcnconv":
     mat = utility.calculate_laplacian_metrix(adj_mat, mat_type)
     gcnconv_filter = torch.from_numpy(mat).float().to(device)
-    stgcn_gcnconv = models.STGCN_GCNConv(Kt, Ks, blocks, n_his, n_vertex, graph_conv_type, gcnconv_filter, dropout_rate).to(device)
+    stgcn_gcnconv = models.STGCN_GCNConv(Kt, Ks, blocks, n_his, n_vertex, graph_conv_type, gcnconv_filter, drop_rate).to(device)
     if (mat_type != "hat_sym_normd_lap_mat") and (mat_type != "hat_rw_normd_lap_mat"):
         raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')
 
@@ -159,7 +159,6 @@ test_iter = utils.data.DataLoader(dataset=test_data, batch_size=bs, shuffle=Fals
 loss = nn.MSELoss()
 epochs = args.epochs
 learning_rate = 7.5e-4
-weight_decay = 5e-4
 early_stopping = earlystopping.EarlyStopping(patience=30, path=checkpoint_path, verbose=True)
 
 if graph_conv_type == "chebconv":
@@ -170,11 +169,11 @@ elif graph_conv_type == "gcnconv":
     model_stats = summary(stgcn_gcnconv, (1, n_his, n_vertex))
 
 if args.opt == "RMSProp":
-    optimizer = optim.RMSprop(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
 elif args.opt == "Adam":
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 elif args.opt == "AdamW":
-    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
 else:
     raise ValueError(f'ERROR: optimizer "{args.opt}" is undefined.')
 

@@ -207,7 +207,7 @@ class STConvBlock(nn.Module):
     # T: Temporal Convolution Layer (ReLU)
     # N: Layer Normolization
 
-    def __init__(self, Kt, Ks, n_vertex, channel, graph_conv_type, graph_conv_filter, dropout_rate):
+    def __init__(self, Kt, Ks, n_vertex, channel, graph_conv_type, graph_conv_filter, drop_rate):
         super(STConvBlock, self).__init__()
         self.tmp_conv1 = TemporalConvLayer(Kt, channel[0], channel[1], n_vertex, "glu")
         self.spat_conv = SpatialConvLayer(Ks, channel[1], channel[2], graph_conv_type, graph_conv_filter)
@@ -216,7 +216,7 @@ class STConvBlock(nn.Module):
         #self.ln_tc1 = nn.LayerNorm([n_vertex, channel[1]])
         #self.ln_sc = nn.LayerNorm([n_vertex, channel[2]])
         self.ln_tc2 = nn.LayerNorm([n_vertex, channel[3]])
-        self.spat_dropout = nn.Dropout2d(dropout_rate)
+        self.spat_dropout = nn.Dropout2d(p=drop_rate)
 
     def forward(self, x):
         x_tmp_conv1 = self.tmp_conv1(x)
@@ -235,14 +235,14 @@ class OutputBlock(nn.Module):
     # T: Temporal Convolution Layer (Sigmoid)
     # F: Fully-Connected Layer
 
-    def __init__(self, channel, T, n_vertex, dropout_rate):
+    def __init__(self, channel, T, n_vertex, drop_rate):
         super(OutputBlock, self).__init__()
         self.tmp_conv1 = TemporalConvLayer(T, channel[0], channel[1], n_vertex, "glu")
         self.ln_tc1 = nn.LayerNorm([n_vertex, channel[1]])
         self.tmp_conv2 = TemporalConvLayer(1, channel[1], channel[2], n_vertex, "sigmoid")
         #self.ln_tc2 = nn.LayerNorm([n_vertex, channel[2]])
         self.fc = FullyConnectedLayer(channel[2], channel[3])
-        #self.spat_dropout = nn.Dropout2d(dropout_rate)
+        #self.spat_dropout = nn.Dropout2d(p=drop_rate)
 
     def forward(self, x):
         x_tc1 = self.tmp_conv1(x)
