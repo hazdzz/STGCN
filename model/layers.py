@@ -34,11 +34,12 @@ class TemporalConvLayer(nn.Module):
 
     #param x: tensor, [batch_size, c_in, timestep, n_vertex]
 
-    def __init__(self, Kt, c_in, c_out, act_func):
+    def __init__(self, Kt, c_in, c_out, n_vertex, act_func):
         super(TemporalConvLayer, self).__init__()
         self.Kt = Kt
         self.c_in = c_in
         self.c_out = c_out
+        self.n_vertex = n_vertex
         self.act_func = act_func
         self.align = Align(self.c_in, self.c_out)
         if self.act_func == "glu":
@@ -47,6 +48,7 @@ class TemporalConvLayer(nn.Module):
             self.conv = nn.Conv2d(self.c_in, self.c_out, (Kt, 1), 1)
         self.sigmoid = nn.Sigmoid()
         self.relu = nn.ReLU()
+        self.linear = nn.Linear(n_vertex, n_vertex)
 
     def forward(self, x):   
         x_align = self.align(x)
@@ -57,24 +59,25 @@ class TemporalConvLayer(nn.Module):
         if self.act_func == "glu":
             P = x_conv[:, : self.c_out, :, :]
             Q = x_conv[:, -self.c_out:, :, :]
-            P_with_rc = P + x_in
-            # (P + x_in) ⊙ Sigmoid(Q)
-            x_glu = torch.mul(P_with_rc, self.sigmoid(Q))
+            x_p_with_rc = self.linear(P + x_in)
+            x_q = self.linear(Q)
+            # Linear(P + x_in) ⊙ Sigmoid(Linear(Q))
+            x_glu = torch.mul(x_p_with_rc, self.sigmoid(x_q))
             x_tc_out = x_glu
-        
-        # Temporal Convolution Layer (Sigmoid)
-        elif self.act_func == "sigmoid":
-            x_sigmoid = self.sigmoid(x_conv)
-            x_tc_out = x_sigmoid
         
         # Temporal Convolution Layer (ReLU)
         elif self.act_func == "relu":
             x_relu = self.relu(x_conv + x_in)
             x_tc_out = x_relu
+            
+        # Temporal Convolution Layer (Sigmoid)
+        elif self.act_func == "sigmoid":
+            x_sigmoid = self.sigmoid(x_conv)
+            x_tc_out = x_sigmoid
         
         # Temporal Convolution Layer (Linear)
         elif self.act_func == "linear":
-            x_linear = x_conv
+            x_linear = self.linear(x_conv)
             x_tc_out = x_linear
         
         else:
@@ -206,9 +209,9 @@ class STConvBlock(nn.Module):
 
     def __init__(self, Kt, Ks, n_vertex, channel, graph_conv_type, graph_conv_filter, dropout_rate):
         super(STConvBlock, self).__init__()
-        self.tmp_conv1 = TemporalConvLayer(Kt, channel[0], channel[1], "glu")
+        self.tmp_conv1 = TemporalConvLayer(Kt, channel[0], channel[1], n_vertex, "glu")
         self.spat_conv = SpatialConvLayer(Ks, channel[1], channel[2], graph_conv_type, graph_conv_filter)
-        self.tmp_conv2 = TemporalConvLayer(Kt, channel[2], channel[3], "relu")
+        self.tmp_conv2 = TemporalConvLayer(Kt, channel[2], channel[3], n_vertex,"relu")
         self.relu = nn.ReLU()
         #self.ln_tc1 = nn.LayerNorm([n_vertex, channel[1]])
         #self.ln_sc = nn.LayerNorm([n_vertex, channel[2]])
@@ -234,9 +237,9 @@ class OutputBlock(nn.Module):
 
     def __init__(self, channel, T, n_vertex, dropout_rate):
         super(OutputBlock, self).__init__()
-        self.tmp_conv1 = TemporalConvLayer(T, channel[0], channel[1], "glu")
+        self.tmp_conv1 = TemporalConvLayer(T, channel[0], channel[1], n_vertex, "glu")
         self.ln_tc1 = nn.LayerNorm([n_vertex, channel[1]])
-        self.tmp_conv2 = TemporalConvLayer(1, channel[1], channel[2], "sigmoid")
+        self.tmp_conv2 = TemporalConvLayer(1, channel[1], channel[2], n_vertex, "sigmoid")
         #self.ln_tc2 = nn.LayerNorm([n_vertex, channel[2]])
         self.fc = FullyConnectedLayer(channel[2], channel[3])
         #self.spat_dropout = nn.Dropout2d(dropout_rate)
