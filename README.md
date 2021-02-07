@@ -12,7 +12,7 @@ https://arxiv.org/abs/1709.04875
 1. Fix tons of bugs 
 2. Add Early Stopping approach
 3. Add Dropout approach
-4. Offer a better set of hyperparameters
+4. Offer a different set of hyperparameters which untuned
 5. Offer config files for two different categories graph convolution
 
 ## The result for road traffic prediction on dataset PeMSD7(M)(15/30/45 mins)
