@@ -242,12 +242,13 @@ class OutputBlock(nn.Module):
         self.tmp_conv2 = TemporalConvLayer(1, channel[1], channel[2], n_vertex, "sigmoid")
         #self.ln_tc2 = nn.LayerNorm([n_vertex, channel[2]])
         self.fc = FullyConnectedLayer(channel[2], channel[3])
-        #self.spat_dropout = nn.Dropout2d(p=drop_rate)
+        self.spat_dropout = nn.Dropout2d(p=drop_rate)
 
     def forward(self, x):
         x_tc1 = self.tmp_conv1(x)
         x_ln_tc1 = self.ln_tc1(x_tc1.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
         x_tc2 = self.tmp_conv2(x_ln_tc1)
-        x_fc = self.fc(x_tc2)
+        x_spat_do = self.spat_dropout(x_tc2)
+        x_fc = self.fc(x_spat_do)
         x_out = x_fc
         return x_out

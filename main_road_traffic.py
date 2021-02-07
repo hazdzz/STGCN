@@ -22,7 +22,7 @@ from model import models
 logging.basicConfig(level=logging.INFO)
 
 # For stable experiment results
-SEED = 2333
+SEED = 233
 os.environ['PYTHONHASHSEED']=str(SEED)
 random.seed(SEED)
 np.random.seed(SEED)
@@ -45,8 +45,8 @@ parser.add_argument('--epochs', type=int, default=500,
 parser.add_argument('--config_path', type=str, default='./config/chebconv_sym_glu.ini',
                     help='the path of config file, chebconv_sym_glu.ini for STGCN(ChebConv, Ks=3), \
                     and gcnconv_sym_glu.ini for STGCN(GCNConv)')
-parser.add_argument('--drop_rate', type=float, default=0.2,
-                    help='drop rate for dropout, it is not the keep rate, default as 0.2')
+parser.add_argument('--drop_rate', type=float, default=0.4,
+                    help='drop rate for dropout, it is not the keep rate, default as 0.4')
 parser.add_argument('--opt', type=str, default='AdamW',
                     help='optimizer, default as AdamW')
 parser.add_argument('--data_path', type=str, default='./data/road_traffic/PeMS-M/V_228.csv',
@@ -161,7 +161,8 @@ test_iter = utils.data.DataLoader(dataset=test_data, batch_size=bs, shuffle=Fals
 
 loss = nn.MSELoss()
 epochs = args.epochs
-learning_rate = 7.5e-4
+learning_rate = 1e-4
+weight_decay_rate = 1e-6
 early_stopping = earlystopping.EarlyStopping(patience=30, path=checkpoint_path, verbose=True)
 
 if graph_conv_type == "chebconv":
@@ -172,15 +173,15 @@ elif graph_conv_type == "gcnconv":
     model_stats = summary(stgcn_gcnconv, (1, n_his, n_vertex))
 
 if args.opt == "RMSProp":
-    optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
+    optimizer = optim.RMSprop(model.parameters(), lr=learning_rate, weight_decay=weight_decay_rate)
 elif args.opt == "Adam":
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay_rate)
 elif args.opt == "AdamW":
-    optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay_rate)
 else:
     raise ValueError(f'ERROR: optimizer "{args.opt}" is undefined.')
 
-scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.999)
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.99999)
 
 def val():
     model.eval()
