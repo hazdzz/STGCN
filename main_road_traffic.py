@@ -23,6 +23,7 @@ logging.basicConfig(level=logging.INFO)
 
 # For stable experiment results
 SEED = 2333
+os.environ['PYTHONHASHSEED']=str(SEED)
 random.seed(SEED)
 np.random.seed(SEED)
 torch.manual_seed(SEED)
