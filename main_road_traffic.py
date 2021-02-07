@@ -45,6 +45,14 @@ parser.add_argument('--wam_path', type=str, default='./data/road_traffic/PeMS-M/
 args = parser.parse_args()
 print('Training configs: {}'.format(args))
 
+# For stable experiment results
+SEED = 2333
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+torch.cuda.manual_seed(SEED)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
 # Running in Nvidia GPU (CUDA) or CPU
 if args.enable_cuda and torch.cuda.is_available():
     device = torch.device("cuda")
@@ -151,6 +159,7 @@ test_iter = utils.data.DataLoader(dataset=test_data, batch_size=bs, shuffle=Fals
 loss = nn.MSELoss()
 epochs = args.epochs
 learning_rate = 7.5e-4
+weight_decay = 5e-4
 early_stopping = earlystopping.EarlyStopping(patience=30, path=checkpoint_path, verbose=True)
 
 if graph_conv_type == "chebconv":
@@ -161,11 +170,11 @@ elif graph_conv_type == "gcnconv":
     model_stats = summary(stgcn_gcnconv, (1, n_his, n_vertex))
 
 if args.opt == "RMSProp":
-    optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
+    optimizer = optim.RMSprop(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 elif args.opt == "Adam":
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 elif args.opt == "AdamW":
-    optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 else:
     raise ValueError(f'ERROR: optimizer "{args.opt}" is undefined.')
 
