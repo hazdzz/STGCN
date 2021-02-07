@@ -151,7 +151,7 @@ test_iter = utils.data.DataLoader(dataset=test_data, batch_size=bs, shuffle=Fals
 loss = nn.MSELoss()
 epochs = args.epochs
 learning_rate = 7.5e-4
-early_stopping = earlystopping.EarlyStopping(patience=20, path=checkpoint_path, verbose=True)
+early_stopping = earlystopping.EarlyStopping(patience=30, path=checkpoint_path, verbose=True)
 
 if graph_conv_type == "chebconv":
     model = stgcn_chebconv
