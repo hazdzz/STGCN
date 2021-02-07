@@ -106,7 +106,7 @@ n_pred = args.n_pred
 n_his = int(12)
 
 time_pred = n_pred * time_intvl
-time_pred_str = '_'+str(time_pred)+'_mins'
+time_pred_str = '_' + str(time_pred) + '_mins'
 checkpoint_path = ConfigSectionMap('graphconv')['checkpoint_path']
 checkpoint_path = checkpoint_path + time_pred_str + '.pth'
 model_save_path = ConfigSectionMap('graphconv')['model_save_path']
