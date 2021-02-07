@@ -81,7 +81,7 @@ class TemporalConvLayer(nn.Module):
             x_tc_out = x_linear
         
         else:
-            raise ValueError(f'ERROR: activation function "{act_func}" is not defined.')
+            raise ValueError(f'ERROR: activation function "{self.act_func}" is not defined.')
         
         return x_tc_out
 
