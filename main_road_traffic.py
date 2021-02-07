@@ -20,6 +20,14 @@ from model import models
 
 logging.basicConfig(level=logging.INFO)
 
+# For stable experiment results
+SEED = 2333
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+torch.cuda.manual_seed(SEED)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
 parser = argparse.ArgumentParser(description='STGCN for road traffic prediction')
 parser.add_argument('--enable_cuda', type=bool, default='True',
                     help='enable CUDA, default as True')
@@ -44,14 +52,6 @@ parser.add_argument('--wam_path', type=str, default='./data/road_traffic/PeMS-M/
                     help='the path of weighted adjacency matrix')
 args = parser.parse_args()
 print('Training configs: {}'.format(args))
-
-# For stable experiment results
-SEED = 2333
-np.random.seed(SEED)
-torch.manual_seed(SEED)
-torch.cuda.manual_seed(SEED)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
 
 # Running in Nvidia GPU (CUDA) or CPU
 if args.enable_cuda and torch.cuda.is_available():
