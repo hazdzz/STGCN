@@ -41,7 +41,7 @@ def main():
                         help='enable CUDA, default as True')
     parser.add_argument('--time_intvl', type=int, default=5,
                         help='time interval of sampling (mins), default as 5 mins')
-    parser.add_argument('--n_pred', type=int, default=9, 
+    parser.add_argument('--n_pred', type=int, default=12, 
                         help='the number of time interval for predcition, default as 9 (literally means 45 mins)')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='batch size, defualt as 32')
@@ -120,7 +120,7 @@ def main():
     wam_path = args.wam_path
     adj_mat = dataloader.load_weighted_adjacency_matrix(wam_path)
 
-    n_train, n_val, n_test = 34, 5, 5
+    n_train, n_val, n_test = 28, 8, 8 # train: val: test = 6: 2: 2
     len_train, len_val, len_test = n_train * day_slot, n_val * day_slot, n_test * day_slot
     data_path = args.data_path
     n_vertex_v = pd.read_csv(data_path, header=None).shape[1]
@@ -188,18 +188,9 @@ def main():
 
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.99999)
 
-def val():
-    model.eval()
-    l_sum, n = 0.0, 0
-    with torch.no_grad():
-        for x, y in val_iter:
-            y_pred = model(x).view(len(x), -1)
-            l = loss(y_pred, y)
-            l_sum += l.item() * y.shape[0]
-            n += y.shape[0]
-        return l_sum / n
+    return zscore, loss, epochs, optimizer, scheduler, early_stopping, model, model_save_path, train_iter, val_iter, test_iter
 
-def train():
+def train(loss, epochs, optimizer, scheduler, early_stopping, model, model_save_path, train_iter, val_iter):
     valid_losses = []
     min_val_loss = np.inf
     for epoch in range(1, epochs + 1):
@@ -214,7 +205,7 @@ def train():
             scheduler.step()
             l_sum += l.item() * y.shape[0]
             n += y.shape[0]
-        val_loss = val()
+        val_loss = val(model, val_iter)
         valid_losses.append(val_loss)
         valid_loss = np.average(valid_losses)
         # GPU memory usage
@@ -236,12 +227,20 @@ def train():
             print("Early stopping.")
             break
     print('\nTraining finished.\n')
+
+def val(model, val_iter):
+    model.eval()
+    l_sum, n = 0.0, 0
+    with torch.no_grad():
+        for x, y in val_iter:
+            y_pred = model(x).view(len(x), -1)
+            l = loss(y_pred, y)
+            l_sum += l.item() * y.shape[0]
+            n += y.shape[0]
+        return l_sum / n
     
-def test():
-    if graph_conv_type == "chebconv":
-        best_model = stgcn_chebconv
-    elif graph_conv_type == "gcnconv":
-        best_model = stgcn_gcnconv
+def test(zscore, loss, model, test_iter):
+    best_model = model
     best_model.load_state_dict(torch.load(model_save_path))
     test_MSE = utility.evaluate_model(best_model, loss, test_iter)
     print('Test loss {:.6f}'.format(test_MSE))
@@ -257,10 +256,10 @@ if __name__ == "__main__":
     #worker_init_fn(SEED)
 
     # Settings
-    main()
+    zscore, loss, epochs, optimizer, scheduler, early_stopping, model, model_save_path, train_iter, val_iter, test_iter = main()
 
-    # Train
-    #train()
+    # Training
+    train(loss, epochs, optimizer, scheduler, early_stopping, model, model_save_path, train_iter, val_iter)
 
-    # Test
-    #test()
+    # Testing
+    test(zscore, loss, model, test_iter)
