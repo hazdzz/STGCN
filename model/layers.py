@@ -57,12 +57,10 @@ class TemporalConvLayer(nn.Module):
 
         # Temporal Convolution Layer (GLU)
         if self.act_func == "glu":
-            P = x_conv[:, : self.c_out, :, :]
-            Q = x_conv[:, -self.c_out:, :, :]
-            x_p_with_rc = self.linear(P + x_in)
-            x_q = self.linear(Q)
-            # Linear(P + x_in) ⊙ Sigmoid(Linear(Q))
-            x_glu = torch.mul(x_p_with_rc, self.sigmoid(x_q))
+            x_p = x_conv[:, : self.c_out, :, :]
+            x_q = x_conv[:, -self.c_out:, :, :]
+            # (x_p + x_in) ⊙ Sigmoid(x_q)
+            x_glu = torch.mul((x_p + x_in), self.sigmoid(x_q))
             x_tc_out = x_glu
         
         # Temporal Convolution Layer (ReLU)
