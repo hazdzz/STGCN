@@ -34,16 +34,13 @@ def set_seed(seed):
 def worker_init_fn(worker_id):
     set_seed(worker_id)
 
-def main():
-
-    logging.basicConfig(level=logging.INFO)
-
+def get_parameters():
     parser = argparse.ArgumentParser(description='STGCN for road traffic prediction')
     parser.add_argument('--enable_cuda', type=bool, default='True',
                         help='enable CUDA, default as True')
     parser.add_argument('--time_intvl', type=int, default=5,
                         help='time interval of sampling (mins), default as 5 mins')
-    parser.add_argument('--n_pred', type=int, default=9, 
+    parser.add_argument('--n_pred', type=int, default=3, 
                         help='the number of time interval for predcition, default as 9 (literally means 45 mins)')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='batch size, defualt as 32')
@@ -63,12 +60,6 @@ def main():
     args = parser.parse_args()
     print('Training configs: {}'.format(args))
 
-    # Running in Nvidia GPU (CUDA) or CPU
-    if args.enable_cuda and torch.cuda.is_available():
-        device = torch.device("cuda")
-    else:
-        device = torch.device("cpu")
-
     config = configparser.ConfigParser()
     config_path = args.config_path
     config.read(config_path, encoding="utf-8")
@@ -86,31 +77,42 @@ def main():
                 dict1[option] = None
         return dict1
 
+    # Running in Nvidia GPU (CUDA) or CPU
+    if args.enable_cuda and torch.cuda.is_available():
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+
     Kt = int(ConfigSectionMap('casualconv')['kt'])
     if (Kt != 2) and (Kt != 3):
         raise ValueError(f'ERROR: Kt must be 2 or 3, "{Kt}" is unacceptable, unless you rewrite the code.')
     else:
         Kt = Kt
+    
     graph_conv_type = ConfigSectionMap('graphconv')['graph_conv_type']
     if (graph_conv_type != "chebconv") and (graph_conv_type != "gcnconv"):
         raise NotImplementedError(f'ERROR: "{graph_conv_type}" is not implemented.')
     else:
         graph_conv_type = graph_conv_type
+    
     Ks = int(ConfigSectionMap('graphconv')['ks'])
     if (graph_conv_type == 'gcnconv') and (Ks != 2):
         Ks = 2
+    
     mat_type = ConfigSectionMap('graphconv')['mat_type']
 
     # blocks: settings of channel size in st_conv_blocks and output layer,
     # using the bottleneck design in st_conv_blocks
     blocks = [[1, 64, 16, 64], [64, 64, 16, 64], [64, 128, 128, 128]]
+
     if (args.time_intvl % 2 == 0) or (args.time_intvl % 3 == 0) or (args.time_intvl % 5 == 0):
         time_intvl = args.time_intvl
     else:
         raise ValueError(f'ERROR: time_intvl must be n times longer than 2, 3 or 5, "{args.time_intvl}" is unacceptable.')
+
     day_slot = int(24 * 60 / time_intvl)
-    n_pred = args.n_pred
     n_his = int(12)
+    n_pred = args.n_pred
 
     time_pred = n_pred * time_intvl
     time_pred_str = '_' + str(time_pred) + '_mins'
@@ -122,8 +124,6 @@ def main():
     wam_path = args.wam_path
     adj_mat = dataloader.load_weighted_adjacency_matrix(wam_path)
 
-    n_train, n_val, n_test = 28, 8, 8 # train: val: test = 6: 2: 2
-    len_train, len_val, len_test = n_train * day_slot, n_val * day_slot, n_test * day_slot
     data_path = args.data_path
     n_vertex_v = pd.read_csv(data_path, header=None).shape[1]
     n_vertex_a = pd.read_csv(wam_path, header=None).shape[1]
@@ -132,21 +132,32 @@ def main():
     else:
         n_vertex = n_vertex_v
 
+    batch_size = args.batch_size
     drop_rate = args.drop_rate
+    opt = args.opt
+    epochs = args.epochs
 
     if graph_conv_type == "chebconv":
         mat = utility.calculate_laplacian_metrix(adj_mat, mat_type)
         graph_conv_filter_list = utility.calculate_chebconv_graph_filter(mat, Ks)
         chebconv_filter_list = torch.from_numpy(graph_conv_filter_list).float().to(device)
         stgcn_chebconv = models.STGCN_ChebConv(Kt, Ks, blocks, n_his, n_vertex, graph_conv_type, chebconv_filter_list, drop_rate).to(device)
+        model = stgcn_chebconv
         if (mat_type != "wid_sym_normd_lap_mat") and (mat_type != "wid_rw_normd_lap_mat"):
             raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')
     elif graph_conv_type == "gcnconv":
         mat = utility.calculate_laplacian_metrix(adj_mat, mat_type)
         gcnconv_filter = torch.from_numpy(mat).float().to(device)
         stgcn_gcnconv = models.STGCN_GCNConv(Kt, Ks, blocks, n_his, n_vertex, graph_conv_type, gcnconv_filter, drop_rate).to(device)
+        model = stgcn_gcnconv
         if (mat_type != "hat_sym_normd_lap_mat") and (mat_type != "hat_rw_normd_lap_mat"):
             raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')
+
+    return device, n_his, n_pred, day_slot, checkpoint_path, model_save_path, data_path, n_vertex, batch_size, drop_rate, opt, epochs, model
+
+def data_preparate(data_path, device, n_his, n_pred, day_slot, batch_size):
+    n_train, n_val, n_test = 28, 8, 8 # train: val: test = 6: 2: 2
+    len_train, len_val, len_test = n_train * day_slot, n_val * day_slot, n_test * day_slot
 
     train, val, test = dataloader.load_data(data_path, len_train, len_val)
     zscore = preprocessing.StandardScaler()
@@ -158,39 +169,35 @@ def main():
     x_val, y_val = dataloader.data_transform(val, n_his, n_pred, day_slot, device)
     x_test, y_test = dataloader.data_transform(test, n_his, n_pred, day_slot, device)
 
-    bs = args.batch_size
     train_data = utils.data.TensorDataset(x_train, y_train)
-    train_iter = utils.data.DataLoader(dataset=train_data, batch_size=bs, shuffle=False)
+    train_iter = utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=False)
     val_data = utils.data.TensorDataset(x_val, y_val)
-    val_iter = utils.data.DataLoader(dataset=val_data, batch_size=bs, shuffle=False)
+    val_iter = utils.data.DataLoader(dataset=val_data, batch_size=batch_size, shuffle=False)
     test_data = utils.data.TensorDataset(x_test, y_test)
-    test_iter = utils.data.DataLoader(dataset=test_data, batch_size=bs, shuffle=False)
+    test_iter = utils.data.DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
 
+    return zscore, train_iter, val_iter, test_iter
+
+def main(checkpoint_path, model, n_his, n_vertex, opt):
     loss = nn.MSELoss()
-    epochs = args.epochs
     learning_rate = 1e-4
     weight_decay_rate = 1e-6
     early_stopping = earlystopping.EarlyStopping(patience=30, path=checkpoint_path, verbose=True)
 
-    if graph_conv_type == "chebconv":
-        model = stgcn_chebconv
-        model_stats = summary(stgcn_chebconv, (1, n_his, n_vertex))
-    elif graph_conv_type == "gcnconv":
-        model = stgcn_gcnconv
-        model_stats = summary(stgcn_gcnconv, (1, n_his, n_vertex))
+    model_stats = summary(model, (1, n_his, n_vertex))
 
-    if args.opt == "RMSProp":
+    if opt == "RMSProp":
         optimizer = optim.RMSprop(model.parameters(), lr=learning_rate, weight_decay=weight_decay_rate)
-    elif args.opt == "Adam":
+    elif opt == "Adam":
         optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay_rate)
-    elif args.opt == "AdamW":
+    elif opt == "AdamW":
         optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay_rate)
     else:
-        raise ValueError(f'ERROR: optimizer "{args.opt}" is undefined.')
+        raise ValueError(f'ERROR: optimizer "{opt}" is undefined.')
 
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.999)
 
-    return zscore, loss, epochs, optimizer, scheduler, early_stopping, model, model_save_path, train_iter, val_iter, test_iter
+    return loss, early_stopping, optimizer, scheduler
 
 def train(loss, epochs, optimizer, scheduler, early_stopping, model, model_save_path, train_iter, val_iter):
     valid_losses = []
@@ -257,8 +264,13 @@ if __name__ == "__main__":
     # For multi-threading dataloader
     #worker_init_fn(SEED)
 
-    # Settings
-    zscore, loss, epochs, optimizer, scheduler, early_stopping, model, model_save_path, train_iter, val_iter, test_iter = main()
+    # Logging
+    logger = logging.getLogger('stgcn')
+    logging.basicConfig(filename='stgcn.log', level=logging.INFO)
+
+    device, n_his, n_pred, day_slot, checkpoint_path, model_save_path, data_path, n_vertex, batch_size, drop_rate, opt, epochs, model = get_parameters()
+    zscore, train_iter, val_iter, test_iter = data_preparate(data_path, device, n_his, n_pred, day_slot, batch_size)
+    loss, early_stopping, optimizer, scheduler = main(checkpoint_path, model, n_his, n_vertex, opt)
 
     # Training
     train(loss, epochs, optimizer, scheduler, early_stopping, model, model_save_path, train_iter, val_iter)
