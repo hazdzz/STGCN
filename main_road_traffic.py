@@ -19,169 +19,174 @@ from torchsummary import summary
 from script import dataloader, utility, earlystopping
 from model import models
 
-logging.basicConfig(level=logging.INFO)
+def set_seed(seed):
+    os.environ['PYTHONHASHSEED']=str(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
 
-# For stable experiment results
-SEED = 233
-os.environ['PYTHONHASHSEED']=str(SEED)
-random.seed(SEED)
-np.random.seed(SEED)
-torch.manual_seed(SEED)
-torch.cuda.manual_seed(SEED)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
+def worker_init_fn(worker_id):
+    set_seed(worker_id)
 
-parser = argparse.ArgumentParser(description='STGCN for road traffic prediction')
-parser.add_argument('--enable_cuda', type=bool, default='True',
-                    help='enable CUDA, default as True')
-parser.add_argument('--time_intvl', type=int, default=5,
-                    help='time interval of sampling (mins), default as 5 mins')
-parser.add_argument('--n_pred', type=int, default=9, 
-                    help='the number of time interval for predcition, default as 9 (literally means 45 mins)')
-parser.add_argument('--batch_size', type=int, default=32,
-                    help='batch size, defualt as 32')
-parser.add_argument('--epochs', type=int, default=500,
-                    help='epochs, default as 500')
-parser.add_argument('--config_path', type=str, default='./config/chebconv_sym_glu.ini',
-                    help='the path of config file, chebconv_sym_glu.ini for STGCN(ChebConv, Ks=3), \
-                    and gcnconv_sym_glu.ini for STGCN(GCNConv)')
-parser.add_argument('--drop_rate', type=float, default=0.4,
-                    help='drop rate for dropout, it is not the keep rate, default as 0.4')
-parser.add_argument('--opt', type=str, default='AdamW',
-                    help='optimizer, default as AdamW')
-parser.add_argument('--data_path', type=str, default='./data/road_traffic/PeMS-M/V_228.csv',
-                    help='the path of road traffic data')
-parser.add_argument('--wam_path', type=str, default='./data/road_traffic/PeMS-M/A_228.csv',
-                    help='the path of weighted adjacency matrix')
-args = parser.parse_args()
-print('Training configs: {}'.format(args))
+def main():
 
-# Running in Nvidia GPU (CUDA) or CPU
-if args.enable_cuda and torch.cuda.is_available():
-    device = torch.device("cuda")
-else:
-    device = torch.device("cpu")
+    logging.basicConfig(level=logging.INFO)
 
-config = configparser.ConfigParser()
-config_path = args.config_path
-config.read(config_path, encoding="utf-8")
+    parser = argparse.ArgumentParser(description='STGCN for road traffic prediction')
+    parser.add_argument('--enable_cuda', type=bool, default='True',
+                        help='enable CUDA, default as True')
+    parser.add_argument('--time_intvl', type=int, default=5,
+                        help='time interval of sampling (mins), default as 5 mins')
+    parser.add_argument('--n_pred', type=int, default=9, 
+                        help='the number of time interval for predcition, default as 9 (literally means 45 mins)')
+    parser.add_argument('--batch_size', type=int, default=32,
+                        help='batch size, defualt as 32')
+    parser.add_argument('--epochs', type=int, default=500,
+                        help='epochs, default as 500')
+    parser.add_argument('--config_path', type=str, default='./config/chebconv_sym_glu.ini',
+                        help='the path of config file, chebconv_sym_glu.ini for STGCN(ChebConv, Ks=3), \
+                            and gcnconv_sym_glu.ini for STGCN(GCNConv)')
+    parser.add_argument('--drop_rate', type=float, default=0.4,
+                        help='drop rate for dropout, it is not the keep rate, default as 0.4')
+    parser.add_argument('--opt', type=str, default='AdamW',
+                        help='optimizer, default as AdamW')
+    parser.add_argument('--data_path', type=str, default='./data/road_traffic/PeMS-M/V_228.csv',
+                        help='the path of road traffic data')
+    parser.add_argument('--wam_path', type=str, default='./data/road_traffic/PeMS-M/A_228.csv',
+                        help='the path of weighted adjacency matrix')
+    args = parser.parse_args()
+    print('Training configs: {}'.format(args))
 
-def ConfigSectionMap(section):
-    dict1 = {}
-    options = config.options(section)
-    for option in options:
-        try:
-            dict1[option] = config.get(section, option)
-            if dict1[option] == -1:
-                logging.debug("skip: %s" % option)
-        except:
-            print("exception on %s!" % option)
-            dict1[option] = None
-    return dict1
+    # Running in Nvidia GPU (CUDA) or CPU
+    if args.enable_cuda and torch.cuda.is_available():
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
 
-Kt = int(ConfigSectionMap('casualconv')['kt'])
-if (Kt != 2) and (Kt != 3):
-    raise ValueError(f'ERROR: Kt must be 2 or 3, "{Kt}" is unacceptable, unless you rewrite the code.')
-else:
-    Kt = Kt
-graph_conv_type = ConfigSectionMap('graphconv')['graph_conv_type']
-if (graph_conv_type != "chebconv") and (graph_conv_type != "gcnconv"):
-    raise NotImplementedError(f'ERROR: "{graph_conv_type}" is not implemented.')
-else:
-    graph_conv_type = graph_conv_type
-Ks = int(ConfigSectionMap('graphconv')['ks'])
-if (graph_conv_type == 'gcnconv') and (Ks != 2):
-    Ks = 2
-mat_type = ConfigSectionMap('graphconv')['mat_type']
+    config = configparser.ConfigParser()
+    config_path = args.config_path
+    config.read(config_path, encoding="utf-8")
 
-# blocks: settings of channel size in st_conv_blocks and output layer,
-# using the bottleneck design in st_conv_blocks
-blocks = [[1, 64, 16, 64], [64, 64, 16, 64], [64, 128, 128, 128]]
-if (args.time_intvl % 2 == 0) or (args.time_intvl % 3 == 0) or (args.time_intvl % 5 == 0):
-    time_intvl = args.time_intvl
-else:
-    raise ValueError(f'ERROR: time_intvl must be n times longer than 2, 3 or 5, "{args.time_intvl}" is unacceptable.')
-day_slot = int(24 * 60 / time_intvl)
-n_pred = args.n_pred
-n_his = int(12)
+    def ConfigSectionMap(section):
+        dict1 = {}
+        options = config.options(section)
+        for option in options:
+            try:
+                dict1[option] = config.get(section, option)
+                if dict1[option] == -1:
+                    logging.debug("skip: %s" % option)
+            except:
+                print("exception on %s!" % option)
+                dict1[option] = None
+        return dict1
 
-time_pred = n_pred * time_intvl
-time_pred_str = '_' + str(time_pred) + '_mins'
-checkpoint_path = ConfigSectionMap('graphconv')['checkpoint_path']
-checkpoint_path = checkpoint_path + time_pred_str + '.pth'
-model_save_path = ConfigSectionMap('graphconv')['model_save_path']
-model_save_path = model_save_path + time_pred_str + '.pth'
+    Kt = int(ConfigSectionMap('casualconv')['kt'])
+    if (Kt != 2) and (Kt != 3):
+        raise ValueError(f'ERROR: Kt must be 2 or 3, "{Kt}" is unacceptable, unless you rewrite the code.')
+    else:
+        Kt = Kt
+    graph_conv_type = ConfigSectionMap('graphconv')['graph_conv_type']
+    if (graph_conv_type != "chebconv") and (graph_conv_type != "gcnconv"):
+        raise NotImplementedError(f'ERROR: "{graph_conv_type}" is not implemented.')
+    else:
+        graph_conv_type = graph_conv_type
+    Ks = int(ConfigSectionMap('graphconv')['ks'])
+    if (graph_conv_type == 'gcnconv') and (Ks != 2):
+        Ks = 2
+    mat_type = ConfigSectionMap('graphconv')['mat_type']
 
-wam_path = args.wam_path
-adj_mat = dataloader.load_weighted_adjacency_matrix(wam_path)
+    # blocks: settings of channel size in st_conv_blocks and output layer,
+    # using the bottleneck design in st_conv_blocks
+    blocks = [[1, 64, 16, 64], [64, 64, 16, 64], [64, 128, 128, 128]]
+    if (args.time_intvl % 2 == 0) or (args.time_intvl % 3 == 0) or (args.time_intvl % 5 == 0):
+        time_intvl = args.time_intvl
+    else:
+        raise ValueError(f'ERROR: time_intvl must be n times longer than 2, 3 or 5, "{args.time_intvl}" is unacceptable.')
+    day_slot = int(24 * 60 / time_intvl)
+    n_pred = args.n_pred
+    n_his = int(12)
 
-n_train, n_val, n_test = 34, 5, 5
-len_train, len_val, len_test = n_train * day_slot, n_val * day_slot, n_test * day_slot
-data_path = args.data_path
-n_vertex_v = pd.read_csv(data_path, header=None).shape[1]
-n_vertex_a = pd.read_csv(wam_path, header=None).shape[1]
-if n_vertex_v != n_vertex_a:
-    raise ValueError(f'ERROR: number of vertices in dataset is not equal to number of vertices in weighted adjacency matrix.')
-else:
-    n_vertex = n_vertex_v
+    time_pred = n_pred * time_intvl
+    time_pred_str = '_' + str(time_pred) + '_mins'
+    checkpoint_path = ConfigSectionMap('graphconv')['checkpoint_path']
+    checkpoint_path = checkpoint_path + time_pred_str + '.pth'
+    model_save_path = ConfigSectionMap('graphconv')['model_save_path']
+    model_save_path = model_save_path + time_pred_str + '.pth'
 
-drop_rate = args.drop_rate
+    wam_path = args.wam_path
+    adj_mat = dataloader.load_weighted_adjacency_matrix(wam_path)
 
-if graph_conv_type == "chebconv":
-    mat = utility.calculate_laplacian_metrix(adj_mat, mat_type)
-    graph_conv_filter_list = utility.calculate_chebconv_graph_filter(mat, Ks)
-    chebconv_filter_list = torch.from_numpy(graph_conv_filter_list).float().to(device)
-    stgcn_chebconv = models.STGCN_ChebConv(Kt, Ks, blocks, n_his, n_vertex, graph_conv_type, chebconv_filter_list, drop_rate).to(device)
-    if (mat_type != "wid_sym_normd_lap_mat") and (mat_type != "wid_rw_normd_lap_mat"):
-        raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')
-elif graph_conv_type == "gcnconv":
-    mat = utility.calculate_laplacian_metrix(adj_mat, mat_type)
-    gcnconv_filter = torch.from_numpy(mat).float().to(device)
-    stgcn_gcnconv = models.STGCN_GCNConv(Kt, Ks, blocks, n_his, n_vertex, graph_conv_type, gcnconv_filter, drop_rate).to(device)
-    if (mat_type != "hat_sym_normd_lap_mat") and (mat_type != "hat_rw_normd_lap_mat"):
-        raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')
+    n_train, n_val, n_test = 34, 5, 5
+    len_train, len_val, len_test = n_train * day_slot, n_val * day_slot, n_test * day_slot
+    data_path = args.data_path
+    n_vertex_v = pd.read_csv(data_path, header=None).shape[1]
+    n_vertex_a = pd.read_csv(wam_path, header=None).shape[1]
+    if n_vertex_v != n_vertex_a:
+        raise ValueError(f'ERROR: number of vertices in dataset is not equal to number of vertices in weighted adjacency matrix.')
+    else:
+        n_vertex = n_vertex_v
 
-train, val, test = dataloader.load_data(data_path, len_train, len_val)
-zscore = preprocessing.StandardScaler()
-train = zscore.fit_transform(train)
-val = zscore.transform(val)
-test = zscore.transform(test)
+    drop_rate = args.drop_rate
 
-x_train, y_train = dataloader.data_transform(train, n_his, n_pred, day_slot, device)
-x_val, y_val = dataloader.data_transform(val, n_his, n_pred, day_slot, device)
-x_test, y_test = dataloader.data_transform(test, n_his, n_pred, day_slot, device)
+    if graph_conv_type == "chebconv":
+        mat = utility.calculate_laplacian_metrix(adj_mat, mat_type)
+        graph_conv_filter_list = utility.calculate_chebconv_graph_filter(mat, Ks)
+        chebconv_filter_list = torch.from_numpy(graph_conv_filter_list).float().to(device)
+        stgcn_chebconv = models.STGCN_ChebConv(Kt, Ks, blocks, n_his, n_vertex, graph_conv_type, chebconv_filter_list, drop_rate).to(device)
+        if (mat_type != "wid_sym_normd_lap_mat") and (mat_type != "wid_rw_normd_lap_mat"):
+            raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')
+    elif graph_conv_type == "gcnconv":
+        mat = utility.calculate_laplacian_metrix(adj_mat, mat_type)
+        gcnconv_filter = torch.from_numpy(mat).float().to(device)
+        stgcn_gcnconv = models.STGCN_GCNConv(Kt, Ks, blocks, n_his, n_vertex, graph_conv_type, gcnconv_filter, drop_rate).to(device)
+        if (mat_type != "hat_sym_normd_lap_mat") and (mat_type != "hat_rw_normd_lap_mat"):
+            raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')
 
-bs = args.batch_size
-train_data = utils.data.TensorDataset(x_train, y_train)
-train_iter = utils.data.DataLoader(dataset=train_data, batch_size=bs, shuffle=False)
-val_data = utils.data.TensorDataset(x_val, y_val)
-val_iter = utils.data.DataLoader(dataset=val_data, batch_size=bs, shuffle=False)
-test_data = utils.data.TensorDataset(x_test, y_test)
-test_iter = utils.data.DataLoader(dataset=test_data, batch_size=bs, shuffle=False)
+    train, val, test = dataloader.load_data(data_path, len_train, len_val)
+    zscore = preprocessing.StandardScaler()
+    train = zscore.fit_transform(train)
+    val = zscore.transform(val)
+    test = zscore.transform(test)
 
-loss = nn.MSELoss()
-epochs = args.epochs
-learning_rate = 1e-4
-weight_decay_rate = 1e-6
-early_stopping = earlystopping.EarlyStopping(patience=30, path=checkpoint_path, verbose=True)
+    x_train, y_train = dataloader.data_transform(train, n_his, n_pred, day_slot, device)
+    x_val, y_val = dataloader.data_transform(val, n_his, n_pred, day_slot, device)
+    x_test, y_test = dataloader.data_transform(test, n_his, n_pred, day_slot, device)
 
-if graph_conv_type == "chebconv":
-    model = stgcn_chebconv
-    model_stats = summary(stgcn_chebconv, (1, n_his, n_vertex))
-elif graph_conv_type == "gcnconv":
-    model = stgcn_gcnconv
-    model_stats = summary(stgcn_gcnconv, (1, n_his, n_vertex))
+    bs = args.batch_size
+    train_data = utils.data.TensorDataset(x_train, y_train)
+    train_iter = utils.data.DataLoader(dataset=train_data, batch_size=bs, shuffle=False)
+    val_data = utils.data.TensorDataset(x_val, y_val)
+    val_iter = utils.data.DataLoader(dataset=val_data, batch_size=bs, shuffle=False)
+    test_data = utils.data.TensorDataset(x_test, y_test)
+    test_iter = utils.data.DataLoader(dataset=test_data, batch_size=bs, shuffle=False)
 
-if args.opt == "RMSProp":
-    optimizer = optim.RMSprop(model.parameters(), lr=learning_rate, weight_decay=weight_decay_rate)
-elif args.opt == "Adam":
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay_rate)
-elif args.opt == "AdamW":
-    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay_rate)
-else:
-    raise ValueError(f'ERROR: optimizer "{args.opt}" is undefined.')
+    loss = nn.MSELoss()
+    epochs = args.epochs
+    learning_rate = 1e-4
+    weight_decay_rate = 1e-6
+    early_stopping = earlystopping.EarlyStopping(patience=30, path=checkpoint_path, verbose=True)
 
-scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.99999)
+    if graph_conv_type == "chebconv":
+        model = stgcn_chebconv
+        model_stats = summary(stgcn_chebconv, (1, n_his, n_vertex))
+    elif graph_conv_type == "gcnconv":
+        model = stgcn_gcnconv
+        model_stats = summary(stgcn_gcnconv, (1, n_his, n_vertex))
+
+    if args.opt == "RMSProp":
+        optimizer = optim.RMSprop(model.parameters(), lr=learning_rate, weight_decay=weight_decay_rate)
+    elif args.opt == "Adam":
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay_rate)
+    elif args.opt == "AdamW":
+        optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay_rate)
+    else:
+        raise ValueError(f'ERROR: optimizer "{args.opt}" is undefined.')
+
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.99999)
 
 def val():
     model.eval()
@@ -244,5 +249,18 @@ def test():
     print('MAE {:.6f} | MAPE {:.8f} | RMSE {:.6f}'.format(test_MAE, test_MAPE, test_RMSE))
 
 if __name__ == "__main__":
-    train()
-    test()
+    # For stable experiment results
+    SEED = 233
+    set_seed(SEED)
+
+    # For multi-threading dataloader
+    #worker_init_fn(SEED)
+
+    # Settings
+    main()
+
+    # Train
+    #train()
+
+    # Test
+    #test()
