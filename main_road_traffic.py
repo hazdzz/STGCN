@@ -19,6 +19,8 @@ from torchsummary import summary
 from script import dataloader, utility, earlystopping
 from model import models
 
+import nni
+
 def set_seed(seed):
     os.environ['PYTHONHASHSEED']=str(seed)
     random.seed(seed)
@@ -41,7 +43,7 @@ def main():
                         help='enable CUDA, default as True')
     parser.add_argument('--time_intvl', type=int, default=5,
                         help='time interval of sampling (mins), default as 5 mins')
-    parser.add_argument('--n_pred', type=int, default=12, 
+    parser.add_argument('--n_pred', type=int, default=9, 
                         help='the number of time interval for predcition, default as 9 (literally means 45 mins)')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='batch size, defualt as 32')
@@ -186,7 +188,7 @@ def main():
     else:
         raise ValueError(f'ERROR: optimizer "{args.opt}" is undefined.')
 
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.99999)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.999)
 
     return zscore, loss, epochs, optimizer, scheduler, early_stopping, model, model_save_path, train_iter, val_iter, test_iter
 
