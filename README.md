@@ -1,7 +1,7 @@
 # Spatio-Temporal Graph Convolutional Networks
 [![issues](https://img.shields.io/github/issues/hazdzz/STGCN)](https://github.com/hazdzz/STGCN/issues)
-[![forks](https://img.shields.io/github/forks/hazdzz/STGCN)](https://github.com/hazdzz/STGCN/stargazers)
-[![stars](https://img.shields.io/github/stars/hazdzz/STGCN)](https://github.com/hazdzz/STGCN/network/members)
+[![forks](https://img.shields.io/github/forks/hazdzz/STGCN)](https://github.com/hazdzz/STGCN/network/members)
+[![stars](https://img.shields.io/github/stars/hazdzz/STGCN)](https://github.com/hazdzz/STGCN/stargazers)
 [![License](https://img.shields.io/github/license/hazdzz/STGCN)](./LICENSE)
 
 The PyTorch version of STGCN implemented by the paper *Spatio-Temporal Graph Convolutional Networks:
