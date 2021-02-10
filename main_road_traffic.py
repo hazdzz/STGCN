@@ -40,17 +40,17 @@ def get_parameters():
                         help='enable CUDA, default as True')
     parser.add_argument('--time_intvl', type=int, default=5,
                         help='time interval of sampling (mins), default as 5 mins')
-    parser.add_argument('--n_pred', type=int, default=3, 
+    parser.add_argument('--n_pred', type=int, default=9, 
                         help='the number of time interval for predcition, default as 9 (literally means 45 mins)')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='batch size, defualt as 32')
     parser.add_argument('--epochs', type=int, default=500,
                         help='epochs, default as 500')
-    parser.add_argument('--config_path', type=str, default='./config/gcnconv_sym_glu.ini',
+    parser.add_argument('--config_path', type=str, default='./config/chebconv_sym_glu.ini',
                         help='the path of config file, chebconv_sym_glu.ini for STGCN(ChebConv, Ks=3), \
                             and gcnconv_sym_glu.ini for STGCN(GCNConv)')
-    parser.add_argument('--drop_rate', type=float, default=0.4,
-                        help='drop rate for dropout, it is not the keep rate, default as 0.4')
+    parser.add_argument('--drop_rate', type=float, default=0.2,
+                        help='drop rate for dropout, it is not the keep rate, default as 0.2')
     parser.add_argument('--opt', type=str, default='AdamW',
                         help='optimizer, default as AdamW')
     parser.add_argument('--data_path', type=str, default='./data/road_traffic/PeMS-M/V_228.csv',
@@ -156,8 +156,8 @@ def get_parameters():
     return device, n_his, n_pred, day_slot, checkpoint_path, model_save_path, data_path, n_vertex, batch_size, drop_rate, opt, epochs, model
 
 def data_preparate(data_path, device, n_his, n_pred, day_slot, batch_size):
-    # train: val: test = 70: 15: 15
-    n_train, n_val, n_test = 32, 6, 6
+    # train: val: test = 80: 10: 10
+    n_train, n_val, n_test = 34, 5, 5
     len_train, len_val, len_test = n_train * day_slot, n_val * day_slot, n_test * day_slot
 
     train, val, test = dataloader.load_data(data_path, len_train, len_val)
@@ -181,18 +181,21 @@ def data_preparate(data_path, device, n_his, n_pred, day_slot, batch_size):
 
 def main(checkpoint_path, model, n_his, n_vertex, opt):
     loss = nn.MSELoss()
-    learning_rate = 1e-4
-    weight_decay_rate = 1e-6
-    early_stopping = earlystopping.EarlyStopping(patience=30, path=checkpoint_path, verbose=True)
+    learning_rate = 7.5e-4
+    #weight_decay_rate = 1e-6
+    early_stopping = earlystopping.EarlyStopping(patience=20, path=checkpoint_path, verbose=True)
 
     model_stats = summary(model, (1, n_his, n_vertex))
 
     if opt == "RMSProp":
-        optimizer = optim.RMSprop(model.parameters(), lr=learning_rate, weight_decay=weight_decay_rate)
+        #optimizer = optim.RMSprop(model.parameters(), lr=learning_rate, weight_decay=weight_decay_rate)
+        optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
     elif opt == "Adam":
-        optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay_rate)
+        #optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay_rate)
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     elif opt == "AdamW":
-        optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay_rate)
+        #optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay_rate)
+        optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
     else:
         raise ValueError(f'ERROR: optimizer "{opt}" is undefined.')
 
@@ -266,8 +269,9 @@ if __name__ == "__main__":
     #worker_init_fn(SEED)
 
     # Logging
-    logger = logging.getLogger('stgcn')
-    logging.basicConfig(filename='stgcn.log', level=logging.INFO)
+    #logger = logging.getLogger('stgcn')
+    #logging.basicConfig(filename='stgcn.log', level=logging.INFO)
+    logging.basicConfig(level=logging.INFO)
 
     device, n_his, n_pred, day_slot, checkpoint_path, model_save_path, data_path, n_vertex, batch_size, drop_rate, opt, epochs, model = get_parameters()
     zscore, train_iter, val_iter, test_iter = data_preparate(data_path, device, n_his, n_pred, day_slot, batch_size)
