@@ -47,10 +47,10 @@ def get_parameters():
     parser.add_argument('--epochs', type=int, default=500,
                         help='epochs, default as 500')
     parser.add_argument('--config_path', type=str, default='./config/chebconv_sym_glu.ini',
-                        help='the path of config file, chebconv_sym_glu.ini for STGCN(ChebConv, Ks=3), \
-                            and gcnconv_sym_glu.ini for STGCN(GCNConv)')
-    parser.add_argument('--drop_rate', type=float, default=0.2,
-                        help='drop rate for dropout, it is not the keep rate, default as 0.2')
+                        help='the path of config file, chebconv_sym_glu.ini for STGCN(ChebConv, Ks=3, Kt=3), \
+                            and gcnconv_sym_glu.ini for STGCN(GCNConv, Kt=3)')
+    parser.add_argument('--drop_rate', type=float, default=0.5,
+                        help='drop rate for dropout, it is not the keep rate, default as 0.5')
     parser.add_argument('--opt', type=str, default='AdamW',
                         help='optimizer, default as AdamW')
     parser.add_argument('--data_path', type=str, default='./data/road_traffic/PeMS-M/V_228.csv',
@@ -153,10 +153,11 @@ def get_parameters():
         if (mat_type != "hat_sym_normd_lap_mat") and (mat_type != "hat_rw_normd_lap_mat"):
             raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')
 
-    return device, n_his, n_pred, day_slot, checkpoint_path, model_save_path, data_path, n_vertex, batch_size, drop_rate, opt, epochs, model
+    return device, n_his, n_pred, day_slot, checkpoint_path, model_save_path, data_path, n_vertex, batch_size, drop_rate, opt, epochs, graph_conv_type, model
 
 def data_preparate(data_path, device, n_his, n_pred, day_slot, batch_size):
-    # train: val: test = 80: 10: 10
+    # recommended dataset split rate as train: val: test = 60: 20: 20, 70: 15: 15 or 80: 10: 10
+    # using dataset split rate as train: val: test = 80: 10: 10
     n_train, n_val, n_test = 34, 5, 5
     len_train, len_val, len_test = n_train * day_slot, n_val * day_slot, n_test * day_slot
 
@@ -179,7 +180,7 @@ def data_preparate(data_path, device, n_his, n_pred, day_slot, batch_size):
 
     return zscore, train_iter, val_iter, test_iter
 
-def main(checkpoint_path, model, n_his, n_vertex, opt):
+def main(graph_conv_type, checkpoint_path, model, n_his, n_vertex, opt):
     loss = nn.MSELoss()
     learning_rate = 7.5e-4
     #weight_decay_rate = 1e-6
@@ -273,9 +274,9 @@ if __name__ == "__main__":
     #logging.basicConfig(filename='stgcn.log', level=logging.INFO)
     logging.basicConfig(level=logging.INFO)
 
-    device, n_his, n_pred, day_slot, checkpoint_path, model_save_path, data_path, n_vertex, batch_size, drop_rate, opt, epochs, model = get_parameters()
+    device, n_his, n_pred, day_slot, checkpoint_path, model_save_path, data_path, n_vertex, batch_size, drop_rate, opt, epochs, graph_conv_type, model = get_parameters()
     zscore, train_iter, val_iter, test_iter = data_preparate(data_path, device, n_his, n_pred, day_slot, batch_size)
-    loss, early_stopping, optimizer, scheduler = main(checkpoint_path, model, n_his, n_vertex, opt)
+    loss, early_stopping, optimizer, scheduler = main(graph_conv_type, checkpoint_path, model, n_his, n_vertex, opt)
 
     # Training
     train(loss, epochs, optimizer, scheduler, early_stopping, model, model_save_path, train_iter, val_iter)

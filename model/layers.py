@@ -59,6 +59,17 @@ class TemporalConvLayer(nn.Module):
         if self.act_func == "glu":
             x_p = x_conv[:, : self.c_out, :, :]
             x_q = x_conv[:, -self.c_out:, :, :]
+
+            # GLU was first purposed in
+            # Language Modeling with Gated Convolutional Networks
+            # https://arxiv.org/abs/1612.08083
+            # Input tensor X was split by a certain dimension into tensor X_a and X_b
+            # In original paper, GLU as Linear(X_a) ⊙ Sigmoid(Linear(X_b))
+            # However, in PyTorch, GLU as X_a ⊙ Sigmoid(X_b)
+            # https://pytorch.org/docs/master/nn.functional.html#torch.nn.functional.glu
+            # Because in original paper, the representation of GLU is ambiguous
+            # So, it is arguable which one is correct
+
             # (x_p + x_in) ⊙ Sigmoid(x_q)
             x_glu = torch.mul((x_p + x_in), self.sigmoid(x_q))
             x_tc_out = x_glu
@@ -203,7 +214,7 @@ class FullyConnectedLayer(nn.Module):
         return x_fc_out
 
 class STConvBlock(nn.Module):
-    # each STConvBlock contains 'TSTN' structure
+    # STConv Block contains 'TSTN' structure
     # T: Temporal Convolution Layer (GLU)
     # S: Spitial Convolution Layer (ChebConv or GCNConv)
     # T: Temporal Convolution Layer (ReLU)
@@ -218,7 +229,7 @@ class STConvBlock(nn.Module):
         #self.ln_tc1 = nn.LayerNorm([n_vertex, channel[1]])
         #self.ln_sc = nn.LayerNorm([n_vertex, channel[2]])
         self.ln_tc2 = nn.LayerNorm([n_vertex, channel[3]])
-        self.spat_dropout = nn.Dropout2d(p=drop_rate)
+        self.do = nn.Dropout(p=drop_rate)
 
     def forward(self, x):
         x_tmp_conv1 = self.tmp_conv1(x)
@@ -226,8 +237,8 @@ class STConvBlock(nn.Module):
         x_relu = self.relu(x_spat_conv)
         x_tmp_conv2 = self.tmp_conv2(x_relu)
         x_ln_tc2 = self.ln_tc2(x_tmp_conv2.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
-        x_spat_do = self.spat_dropout(x_ln_tc2)
-        x_st_conv_out = x_spat_do
+        x_do = self.do(x_ln_tc2)
+        x_st_conv_out = x_do
         return x_st_conv_out
 
 class OutputBlock(nn.Module):
@@ -244,7 +255,7 @@ class OutputBlock(nn.Module):
         self.tmp_conv2 = TemporalConvLayer(1, channel[1], channel[2], n_vertex, "sigmoid")
         #self.ln_tc2 = nn.LayerNorm([n_vertex, channel[2]])
         self.fc = FullyConnectedLayer(channel[2], channel[3])
-        #self.spat_dropout = nn.Dropout2d(p=drop_rate)
+        #self.do = nn.Dropout(p=drop_rate)
 
     def forward(self, x):
         x_tc1 = self.tmp_conv1(x)
