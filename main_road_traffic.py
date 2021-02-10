@@ -19,7 +19,7 @@ from torchsummary import summary
 from script import dataloader, utility, earlystopping
 from model import models
 
-import nni
+#import nni
 
 def set_seed(seed):
     os.environ['PYTHONHASHSEED']=str(seed)
@@ -46,7 +46,7 @@ def get_parameters():
                         help='batch size, defualt as 32')
     parser.add_argument('--epochs', type=int, default=500,
                         help='epochs, default as 500')
-    parser.add_argument('--config_path', type=str, default='./config/chebconv_sym_glu.ini',
+    parser.add_argument('--config_path', type=str, default='./config/gcnconv_sym_glu.ini',
                         help='the path of config file, chebconv_sym_glu.ini for STGCN(ChebConv, Ks=3), \
                             and gcnconv_sym_glu.ini for STGCN(GCNConv)')
     parser.add_argument('--drop_rate', type=float, default=0.4,
@@ -156,7 +156,8 @@ def get_parameters():
     return device, n_his, n_pred, day_slot, checkpoint_path, model_save_path, data_path, n_vertex, batch_size, drop_rate, opt, epochs, model
 
 def data_preparate(data_path, device, n_his, n_pred, day_slot, batch_size):
-    n_train, n_val, n_test = 28, 8, 8 # train: val: test = 6: 2: 2
+    # train: val: test = 70: 15: 15
+    n_train, n_val, n_test = 32, 6, 6
     len_train, len_val, len_test = n_train * day_slot, n_val * day_slot, n_test * day_slot
 
     train, val, test = dataloader.load_data(data_path, len_train, len_val)
@@ -258,7 +259,7 @@ def test(zscore, loss, model, test_iter):
 
 if __name__ == "__main__":
     # For stable experiment results
-    SEED = 233
+    SEED = 1608825600
     set_seed(SEED)
 
     # For multi-threading dataloader

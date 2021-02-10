@@ -99,7 +99,9 @@ class ChebConv(nn.Module):
         self.initialize_parameters()
 
     def initialize_parameters(self):
+        # For Sigmoid or Tanh
         #init.xavier_uniform_(self.weight)
+        # For ReLU or Leaky ReLU
         init.kaiming_uniform_(self.weight)
 
         if self.bias is not None:
@@ -136,7 +138,9 @@ class GCNConv(nn.Module):
         self.initialize_parameters()
 
     def initialize_parameters(self):
+        # For Sigmoid or Tanh
         #init.xavier_uniform_(self.weight)
+        # For ReLU or Leaky ReLU
         init.kaiming_uniform_(self.weight)
 
         if self.bias is not None:
