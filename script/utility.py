@@ -55,6 +55,8 @@ def calculate_laplacian_metrix(adj_mat, mat_type):
         return wid_sym_normd_lap_mat
     elif mat_type == 'hat_sym_normd_lap_mat':
         return hat_sym_normd_lap_mat
+    elif mat_type == 'rw_lap_mat':
+        return rw_lap_mat
     elif mat_type == 'rw_normd_lap_mat':
         return rw_normd_lap_mat
     elif mat_type == 'wid_rw_normd_lap_mat':
