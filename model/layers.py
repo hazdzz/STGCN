@@ -131,12 +131,12 @@ class TemporalConvLayer(nn.Module):
         return x_tc_out
 
 class ChebConv(nn.Module):
-    def __init__(self, c_in, c_out, Ks, chebconv_filter, enable_bias):
+    def __init__(self, c_in, c_out, Ks, chebconv_matrix_list, enable_bias):
         super(ChebConv, self).__init__()
         self.c_in = c_in
         self.c_out = c_out
         self.Ks = Ks
-        self.chebconv_filter = chebconv_filter
+        self.chebconv_matrix_list = chebconv_matrix_list
         self.enable_bias = enable_bias
         self.weight = nn.Parameter(torch.FloatTensor(Ks, c_in, c_out))
         if self.enable_bias == True:
@@ -161,7 +161,7 @@ class ChebConv(nn.Module):
 
         x_before_first_mul = x.reshape(-1, c_in)
         x_first_mul = torch.mm(x_before_first_mul, self.weight.reshape(c_in, -1)).reshape(n_vertex * self.Ks, -1)
-        x_second_mul = torch.mm(self.chebconv_filter, x_first_mul).reshape(-1, self.c_out)
+        x_second_mul = torch.mm(self.chebconv_matrix_list, x_first_mul).reshape(-1, self.c_out)
 
         if self.bias is not None:
             x_chebconv = x_second_mul + self.bias
@@ -171,11 +171,11 @@ class ChebConv(nn.Module):
         return x_chebconv
 
 class GCNConv(nn.Module):
-    def __init__(self, c_in, c_out, gcnconv_filter, enable_bias):
+    def __init__(self, c_in, c_out, gcnconv_matrix, enable_bias):
         super(GCNConv, self).__init__()
         self.c_in = c_in
         self.c_out = c_out
-        self.gcnconv_filter = gcnconv_filter
+        self.gcnconv_matrix = gcnconv_matrix
         self.enable_bias = enable_bias
         self.weight = nn.Parameter(torch.FloatTensor(c_in, c_out))
         if enable_bias == True:
@@ -200,7 +200,7 @@ class GCNConv(nn.Module):
 
         x_before_first_mul = x.reshape(-1, c_in)
         x_first_mul = torch.mm(x_before_first_mul, self.weight).reshape(n_vertex, -1)
-        x_second_mul = torch.spmm(self.gcnconv_filter, x_first_mul).reshape(-1, self.c_out)
+        x_second_mul = torch.spmm(self.gcnconv_matrix, x_first_mul).reshape(-1, self.c_out)
 
         if self.bias is not None:
             x_gcnconv_out = x_second_mul + self.bias
@@ -210,19 +210,19 @@ class GCNConv(nn.Module):
         return x_gcnconv_out
 
 class SpatialConvLayer(nn.Module):
-    def __init__(self, Ks, c_in, c_out, graph_conv_type, graph_conv_filter):
+    def __init__(self, Ks, c_in, c_out, graph_conv_type, graph_conv_matrix):
         super(SpatialConvLayer, self).__init__()
         self.Ks = Ks
         self.c_in = c_in
         self.c_out = c_out
         self.align = Align(self.c_in, self.c_out)
         self.graph_conv_type = graph_conv_type
-        self.graph_conv_filter = graph_conv_filter
+        self.graph_conv_matrix = graph_conv_matrix
         self.enable_bias = True
         if self.graph_conv_type == "chebconv":
-            self.chebconv = ChebConv(self.c_out, self.c_out, self.Ks, self.graph_conv_filter, self.enable_bias)
+            self.chebconv = ChebConv(self.c_out, self.c_out, self.Ks, self.graph_conv_matrix, self.enable_bias)
         elif self.graph_conv_type == "gcnconv":
-            self.gcnconv = GCNConv(self.c_out, self.c_out, self.graph_conv_filter, self.enable_bias)
+            self.gcnconv = GCNConv(self.c_out, self.c_out, self.graph_conv_matrix, self.enable_bias)
 
     def forward(self, x):
         x_gc_in = self.align(x)
@@ -317,7 +317,7 @@ class STConvBlock(nn.Module):
     # N: Layer Normolization
     # D: Dropout
 
-    def __init__(self, Kt, Ks, n_vertex, last_block_channel, channel, gated_act_func, graph_conv_type, graph_conv_filter, drop_rate):
+    def __init__(self, Kt, Ks, n_vertex, last_block_channel, channel, gated_act_func, graph_conv_type, graph_conv_matrix, drop_rate):
         super(STConvBlock, self).__init__()
         self.Kt = Kt
         self.Ks = Ks
@@ -327,10 +327,10 @@ class STConvBlock(nn.Module):
         self.gated_act_func = gated_act_func
         self.enable_gated_act_func = True
         self.graph_conv_type = graph_conv_type
-        self.graph_conv_filter = graph_conv_filter
+        self.graph_conv_matrix = graph_conv_matrix
         self.drop_rate = drop_rate
         self.tmp_conv1 = TemporalConvLayer(self.Kt, self.last_block_channel, self.channel[0], self.n_vertex, self.gated_act_func, self.enable_gated_act_func)
-        self.spat_conv = SpatialConvLayer(self.Ks, self.channel[0], self.channel[1], self.graph_conv_type, self.graph_conv_filter)
+        self.spat_conv = SpatialConvLayer(self.Ks, self.channel[0], self.channel[1], self.graph_conv_type, self.graph_conv_matrix)
         self.tmp_conv2 = TemporalConvLayer(self.Kt, self.channel[1], self.channel[2], self.n_vertex, self.gated_act_func, self.enable_gated_act_func)
         self.tc2_ln = nn.LayerNorm([self.n_vertex, self.channel[2]])
         self.relu = nn.ReLU()

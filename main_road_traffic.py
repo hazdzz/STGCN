@@ -143,17 +143,17 @@ def get_parameters():
     epochs = args.epochs
 
     if graph_conv_type == "chebconv":
-        mat = utility.calculate_laplacian_metrix(adj_mat, mat_type)
-        graph_conv_filter_list = utility.calculate_chebconv_graph_filter(mat, Ks)
-        chebconv_filter_list = torch.from_numpy(graph_conv_filter_list).float().to(device)
-        stgcn_chebconv = models.STGCN_ChebConv(Kt, Ks, begin_channel, blocks, end_channel, n_his, n_vertex, gated_act_func, graph_conv_type, chebconv_filter_list, drop_rate).to(device)
+        mat = utility.calculate_laplacian_matrix(adj_mat, mat_type)
+        graph_conv_matrix_list = utility.calculate_chebconv_graph_matrix_list(mat, Ks)
+        chebconv_matrix_list = torch.from_numpy(graph_conv_matrix_list).float().to(device)
+        stgcn_chebconv = models.STGCN_ChebConv(Kt, Ks, begin_channel, blocks, end_channel, n_his, n_vertex, gated_act_func, graph_conv_type, chebconv_matrix_list, drop_rate).to(device)
         model = stgcn_chebconv
         if (mat_type != "wid_sym_normd_lap_mat") and (mat_type != "wid_rw_normd_lap_mat"):
             raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')
     elif graph_conv_type == "gcnconv":
-        mat = utility.calculate_laplacian_metrix(adj_mat, mat_type)
-        gcnconv_filter = torch.from_numpy(mat).float().to(device)
-        stgcn_gcnconv = models.STGCN_GCNConv(Kt, Ks, begin_channel, blocks, end_channel, n_his, n_vertex, gated_act_func, graph_conv_type, gcnconv_filter, drop_rate).to(device)
+        mat = utility.calculate_laplacian_matrix(adj_mat, mat_type)
+        gcnconv_matrix = torch.from_numpy(mat).float().to(device)
+        stgcn_gcnconv = models.STGCN_GCNConv(Kt, Ks, begin_channel, blocks, end_channel, n_his, n_vertex, gated_act_func, graph_conv_type, gcnconv_matrix, drop_rate).to(device)
         model = stgcn_gcnconv
         if (mat_type != "hat_sym_normd_lap_mat") and (mat_type != "hat_rw_normd_lap_mat"):
             raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')

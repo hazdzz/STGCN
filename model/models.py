@@ -27,10 +27,10 @@ class STGCN_ChebConv(nn.Module):
     # T: Temporal Convolution Layer (Sigmoid)
     # F: Fully-Connected Layer
 
-    def __init__(self, Kt, Ks, begin_channel, blocks, end_channel, T, n_vertex, gated_act_func, graph_conv_type, chebconv_filter_list, drop_rate):
+    def __init__(self, Kt, Ks, begin_channel, blocks, end_channel, T, n_vertex, gated_act_func, graph_conv_type, chebconv_matrix_list, drop_rate):
         super(STGCN_ChebConv, self).__init__()
-        self.st_block1 = layers.STConvBlock(Kt, Ks, n_vertex, begin_channel, blocks[0], gated_act_func, graph_conv_type, chebconv_filter_list, drop_rate)
-        self.st_block2 = layers.STConvBlock(Kt, Ks, n_vertex, blocks[0][-1] , blocks[1], gated_act_func, graph_conv_type, chebconv_filter_list, drop_rate)
+        self.st_block1 = layers.STConvBlock(Kt, Ks, n_vertex, begin_channel, blocks[0], gated_act_func, graph_conv_type, chebconv_matrix_list, drop_rate)
+        self.st_block2 = layers.STConvBlock(Kt, Ks, n_vertex, blocks[0][-1] , blocks[1], gated_act_func, graph_conv_type, chebconv_matrix_list, drop_rate)
         Ko = T - (len(blocks) - 1) * 2 * (Kt - 1)
         if Ko > 1:
             self.output = layers.OutputBlock(Ko, blocks[-2][-1], blocks[-1], end_channel, n_vertex, gated_act_func, drop_rate)
@@ -65,10 +65,10 @@ class STGCN_GCNConv(nn.Module):
     # T: Temporal Convolution Layer (Sigmoid)
     # F: Fully-Connected Layer
 
-    def __init__(self, Kt, Ks, begin_channel, blocks, end_channel, T, n_vertex, gated_act_func, graph_conv_type, gcnconv_filter, drop_rate):
+    def __init__(self, Kt, Ks, begin_channel, blocks, end_channel, T, n_vertex, gated_act_func, graph_conv_type, gcnconv_matrix, drop_rate):
         super(STGCN_GCNConv, self).__init__()
-        self.st_block1 = layers.STConvBlock(Kt, Ks, n_vertex, begin_channel, blocks[0], gated_act_func, graph_conv_type, gcnconv_filter, drop_rate)
-        self.st_block2 = layers.STConvBlock(Kt, Ks, n_vertex, blocks[0][-1] , blocks[1], gated_act_func, graph_conv_type, gcnconv_filter, drop_rate)
+        self.st_block1 = layers.STConvBlock(Kt, Ks, n_vertex, begin_channel, blocks[0], gated_act_func, graph_conv_type, gcnconv_matrix, drop_rate)
+        self.st_block2 = layers.STConvBlock(Kt, Ks, n_vertex, blocks[0][-1] , blocks[1], gated_act_func, graph_conv_type, gcnconv_matrix, drop_rate)
         Ko = T - (len(blocks) - 1) * 2 * (Kt - 1)
         if Ko > 1:
             self.output = layers.OutputBlock(Ko, blocks[-2][-1], blocks[-1], end_channel, n_vertex, gated_act_func, drop_rate)

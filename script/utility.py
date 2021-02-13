@@ -5,7 +5,7 @@ from scipy.sparse.linalg import eigs
 
 import torch
 
-def calculate_laplacian_metrix(adj_mat, mat_type):
+def calculate_laplacian_matrix(adj_mat, mat_type):
     n_vertex = adj_mat.shape[0]
     deg_mat = np.asmatrix(np.diag(np.sum(adj_mat, axis=1)))
     adj_mat = np.asmatrix(adj_mat)
@@ -66,7 +66,7 @@ def calculate_laplacian_metrix(adj_mat, mat_type):
     else:
         raise ValueError(f'ERROR: "{mat_type}" is unknown.')
 
-def calculate_chebconv_graph_filter(lap_mat, Ks):
+def calculate_chebconv_graph_matrix_list(lap_mat, Ks):
     # The Chebyshev polynomials are recursively defined as 
     # T_k(x) = 2 * x * T_{k - 1}(x) - T_{k - 2}(x)
     # T_0(x) = 1
