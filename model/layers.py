@@ -9,11 +9,11 @@ class Align(nn.Module):
         super(Align, self).__init__()
         self.c_in = c_in
         self.c_out = c_out
-        self.conv1x1 = nn.Conv2d(c_in, c_out, (1, 1))
+        self.fc = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_out, kernel_size=(1, 1))
 
     def forward(self, x):
         if self.c_in > self.c_out:
-            x_align = self.conv1x1(x)
+            x_align = self.fc(x)
         elif self.c_in < self.c_out:
             batch_size, c_in, timestep, n_vertex = x.shape
             x_align = torch.cat([x, torch.zeros([batch_size, self.c_out - self.c_in, timestep, n_vertex]).to(x)], dim=1)
@@ -31,66 +31,102 @@ class TemporalConvLayer(nn.Module):
     # -------|----|                                   ⊙ ------>
     #             |--->--- casual conv --- sigmoid ---|                               
     #
-
+    
     #param x: tensor, [batch_size, c_in, timestep, n_vertex]
 
-    def __init__(self, Kt, c_in, c_out, n_vertex, act_func):
+    def __init__(self, Kt, c_in, c_out, n_vertex, act_func, enable_gated_act_func):
         super(TemporalConvLayer, self).__init__()
         self.Kt = Kt
         self.c_in = c_in
         self.c_out = c_out
         self.n_vertex = n_vertex
         self.act_func = act_func
+        self.enable_gated_act_func = enable_gated_act_func
         self.align = Align(self.c_in, self.c_out)
-        if self.act_func == "glu":
-            self.conv = nn.Conv2d(self.c_in, 2 * self.c_out, (Kt, 1), 1)
+        if self.enable_gated_act_func == True:
+            self.causal_conv = nn.Conv2d(in_channels=self.c_in, out_channels=2 * self.c_out, kernel_size=(self.Kt, 1), dilation=1)
         else:
-            self.conv = nn.Conv2d(self.c_in, self.c_out, (Kt, 1), 1)
+            self.causal_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_out, kernel_size=(self.Kt, 1), dilation=1)
+        self.linear = nn.Linear(self.n_vertex, self.n_vertex)
         self.sigmoid = nn.Sigmoid()
+        self.tanh = nn.Tanh()
         self.relu = nn.ReLU()
-        self.linear = nn.Linear(n_vertex, n_vertex)
+        self.leakyrelu = nn.LeakyReLU()
+        self.softplus = nn.Softplus()
+        self.softsign = nn.Softsign()
 
     def forward(self, x):   
-        x_align = self.align(x)
-        x_in = x_align[:, :, self.Kt - 1:, :]
-        x_conv = self.conv(x)
+        x_in = self.align(x)[:, :, self.Kt - 1:, :]
+        x_causal_conv = self.causal_conv(x)
 
-        # Temporal Convolution Layer (GLU)
-        if self.act_func == "glu":
-            x_p = x_conv[:, : self.c_out, :, :]
-            x_q = x_conv[:, -self.c_out:, :, :]
+        if self.enable_gated_act_func == True:
+            x_p = x_causal_conv[:, : self.c_out, :, :]
+            x_q = x_causal_conv[:, -self.c_out:, :, :]
 
-            # GLU was first purposed in
-            # Language Modeling with Gated Convolutional Networks
-            # https://arxiv.org/abs/1612.08083
-            # Input tensor X was split by a certain dimension into tensor X_a and X_b
-            # In original paper, GLU as Linear(X_a) ⊙ Sigmoid(Linear(X_b))
-            # However, in PyTorch, GLU as X_a ⊙ Sigmoid(X_b)
-            # https://pytorch.org/docs/master/nn.functional.html#torch.nn.functional.glu
-            # Because in original paper, the representation of GLU is ambiguous
-            # So, it is arguable which one is correct
+            # Temporal Convolution Layer (GLU)
+            if self.act_func == "glu":
+                # GLU was first purposed in
+                # Language Modeling with Gated Convolutional Networks
+                # https://arxiv.org/abs/1612.08083
+                # Input tensor X was split by a certain dimension into tensor X_a and X_b
+                # In original paper, GLU as Linear(X_a) ⊙ Sigmoid(Linear(X_b))
+                # However, in PyTorch, GLU as X_a ⊙ Sigmoid(X_b)
+                # https://pytorch.org/docs/master/nn.functional.html#torch.nn.functional.glu
+                # Because in original paper, the representation of GLU and GTU are ambiguous
+                # So, it is arguable which one version is correct
 
-            # (x_p + x_in) ⊙ Sigmoid(x_q)
-            x_glu = torch.mul((x_p + x_in), self.sigmoid(x_q))
-            x_tc_out = x_glu
-        
-        # Temporal Convolution Layer (ReLU)
-        elif self.act_func == "relu":
-            x_relu = self.relu(x_conv + x_in)
-            x_tc_out = x_relu
-            
-        # Temporal Convolution Layer (Sigmoid)
-        elif self.act_func == "sigmoid":
-            x_sigmoid = self.sigmoid(x_conv)
-            x_tc_out = x_sigmoid
-        
-        # Temporal Convolution Layer (Linear)
-        elif self.act_func == "linear":
-            x_linear = self.linear(x_conv)
-            x_tc_out = x_linear
-        
+                # (x_p + x_in) ⊙ Sigmoid(x_q)
+                x_glu = torch.mul((x_p + x_in), self.sigmoid(x_q))
+                x_tc_out = x_glu
+
+            # Temporal Convolution Layer (GTU)
+            elif self.act_func == "gtu":
+                # Tanh(x_p + x_in) ⊙ Sigmoid(x_q)
+                x_gtu = torch.mul(self.tanh(x_p + x_in), self.sigmoid(x_q))
+                x_tc_out = x_gtu
+
+            else:
+                raise ValueError(f'ERROR: activation function "{self.act_func}" is not defined.')
+
         else:
-            raise ValueError(f'ERROR: activation function "{self.act_func}" is not defined.')
+
+            # Temporal Convolution Layer (Linear)
+            if self.act_func == "linear":
+                x_linear = self.linear(x_causal_conv + x_in)
+                x_tc_out = x_linear
+            
+            # Temporal Convolution Layer (Sigmoid)
+            elif self.act_func == "sigmoid":
+                x_sigmoid = self.sigmoid(x_causal_conv + x_in)
+                x_tc_out = x_sigmoid
+
+            # Temporal Convolution Layer (Tanh)
+            elif self.act_func == "tanh":
+                x_tanh = self.tanh(x_causal_conv + x_in)
+                x_tc_out = x_tanh
+
+            # Temporal Convolution Layer (ReLU)
+            elif self.act_func == "relu":
+                x_relu = self.relu(x_causal_conv + x_in)
+                x_tc_out = x_relu
+        
+            # Temporal Convolution Layer (LeakyReLU)
+            elif self.act_func == "leakyrelu":
+                x_leakyrelu = self.leakyrelu(x_causal_conv + x_in)
+                x_tc_out = x_leakyrelu
+
+            # Temporal Convolution Layer (Softplus)
+            elif self.act_func == "softplus":
+                x_softplus = self.softplus(x_causal_conv + x_in)
+                x_tc_out = x_softplus
+
+            # Temporal Convolution Layer (Softsign)
+            elif self.act_func == "softsign":
+                x_softsign = self.softsign(x_causal_conv + x_in)
+                x_tc_out = x_softsign
+
+            else:
+                raise ValueError(f'ERROR: activation function "{self.act_func}" is not defined.')
         
         return x_tc_out
 
@@ -200,13 +236,73 @@ class SpatialConvLayer(nn.Module):
         x_sc_out = x_sc_with_rc
         return x_sc_out
 
+class LastTemporalConvLayer(nn.Module):
+    def __init__(self, Kt, c_in, c_out, n_vertex, act_func):
+        super(LastTemporalConvLayer, self).__init__()
+        self.Kt = Kt
+        self.c_in = c_in
+        self.c_out = c_out
+        self.n_vertex = n_vertex
+        self.act_func = act_func
+        self.last_tmp_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_out, kernel_size=(Kt, 1), dilation=1)
+        self.linear = nn.Linear(self.n_vertex, self.n_vertex)
+        self.sigmoid = nn.Sigmoid()
+        self.tanh = nn.Tanh()
+        self.relu = nn.ReLU()
+        self.leakyrelu = nn.LeakyReLU()
+        self.softplus = nn.Softplus()
+        self.softsign = nn.Softsign()
+
+    def forward(self, x):
+        x_last_tmp_conv = self.last_tmp_conv(x)
+
+        # Last Temporal Convolution Layer (Linear)
+        if self.act_func == "linear":
+            x_linear = self.linear(x_last_tmp_conv)
+            x_tc_out = x_linear
+            
+        # Last Temporal Convolution Layer (Sigmoid)
+        elif self.act_func == "sigmoid":
+            x_sigmoid = self.sigmoid(x_last_tmp_conv)
+            x_tc_out = x_sigmoid
+
+        # Last Temporal Convolution Layer (Tanh)
+        elif self.act_func == "tanh":
+            x_tanh = self.tanh(x_last_tmp_conv)
+            x_tc_out = x_tanh
+
+        # Last Temporal Convolution Layer (ReLU)
+        elif self.act_func == "relu":
+            x_relu = self.relu(x_last_tmp_conv)
+            x_tc_out = x_relu
+        
+        # Last Temporal Convolution Layer (LeakyReLU)
+        elif self.act_func == "leakyrelu":
+            x_leakyrelu = self.leakyrelu(x_last_tmp_conv)
+            x_tc_out = x_leakyrelu
+
+        # Last Temporal Convolution Layer (Softplus)
+        elif self.act_func == "softplus":
+            x_softplus = self.softplus(x_last_tmp_conv)
+            x_tc_out = x_softplus
+
+        # Last Temporal Convolution Layer (Softsign)
+        elif self.act_func == "softsign":
+            x_softsign = self.softsign(x_last_tmp_conv)
+            x_tc_out = x_softsign
+        
+        else:
+            raise ValueError(f'ERROR: activation function "{self.act_func}" is not defined.')
+
+        return x_tc_out
+
 class FullyConnectedLayer(nn.Module):
     def __init__(self, c_in, c_out):
         super(FullyConnectedLayer, self).__init__()
         self.c_in = c_in
         self.c_out = c_out
         self.align = Align(self.c_in, self.c_out)
-        self.fc = nn.Conv2d(self.c_out, 1, 1)
+        self.fc = nn.Conv2d(in_channels=self.c_out, out_channels=1, kernel_size=(1, 1))
     
     def forward(self, x):
         x_fc_in = self.align(x)
@@ -214,53 +310,68 @@ class FullyConnectedLayer(nn.Module):
         return x_fc_out
 
 class STConvBlock(nn.Module):
-    # STConv Block contains 'TSTN' structure
+    # STConv Block contains 'TNSATND' structure
     # T: Temporal Convolution Layer (GLU)
     # S: Spitial Convolution Layer (ChebConv or GCNConv)
-    # T: Temporal Convolution Layer (ReLU)
+    # T: Temporal Convolution Layer (GLU)
     # N: Layer Normolization
+    # D: Dropout
 
-    def __init__(self, Kt, Ks, n_vertex, channel, graph_conv_type, graph_conv_filter, drop_rate):
+    def __init__(self, Kt, Ks, n_vertex, last_block_channel, channel, gated_act_func, graph_conv_type, graph_conv_filter, drop_rate):
         super(STConvBlock, self).__init__()
-        self.tmp_conv1 = TemporalConvLayer(Kt, channel[0], channel[1], n_vertex, "glu")
-        self.spat_conv = SpatialConvLayer(Ks, channel[1], channel[2], graph_conv_type, graph_conv_filter)
-        self.tmp_conv2 = TemporalConvLayer(Kt, channel[2], channel[3], n_vertex, "relu")
+        self.Kt = Kt
+        self.Ks = Ks
+        self.n_vertex = n_vertex
+        self.last_block_channel = last_block_channel
+        self.channel = channel
+        self.gated_act_func = gated_act_func
+        self.enable_gated_act_func = True
+        self.graph_conv_type = graph_conv_type
+        self.graph_conv_filter = graph_conv_filter
+        self.drop_rate = drop_rate
+        self.tmp_conv1 = TemporalConvLayer(self.Kt, self.last_block_channel, self.channel[0], self.n_vertex, self.gated_act_func, self.enable_gated_act_func)
+        self.spat_conv = SpatialConvLayer(self.Ks, self.channel[0], self.channel[1], self.graph_conv_type, self.graph_conv_filter)
+        self.tmp_conv2 = TemporalConvLayer(self.Kt, self.channel[1], self.channel[2], self.n_vertex, self.gated_act_func, self.enable_gated_act_func)
+        self.tc2_ln = nn.LayerNorm([self.n_vertex, self.channel[2]])
         self.relu = nn.ReLU()
-        #self.ln_tc1 = nn.LayerNorm([n_vertex, channel[1]])
-        #self.ln_sc = nn.LayerNorm([n_vertex, channel[2]])
-        self.ln_tc2 = nn.LayerNorm([n_vertex, channel[3]])
-        self.do = nn.Dropout(p=drop_rate)
+        self.do = nn.Dropout(p=self.drop_rate)
 
     def forward(self, x):
         x_tmp_conv1 = self.tmp_conv1(x)
         x_spat_conv = self.spat_conv(x_tmp_conv1)
         x_relu = self.relu(x_spat_conv)
         x_tmp_conv2 = self.tmp_conv2(x_relu)
-        x_ln_tc2 = self.ln_tc2(x_tmp_conv2.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
-        x_do = self.do(x_ln_tc2)
+        x_tc2_ln = self.tc2_ln(x_tmp_conv2.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+        x_do = self.do(x_tc2_ln)
         x_st_conv_out = x_do
         return x_st_conv_out
 
 class OutputBlock(nn.Module):
-    # Output block contains 'TNTF' structure
+    # Output block contains 'TNF' structure
     # T: Temporal Convolution Layer (GLU)
-    # N: Layer Normalization
+    # N: Layer Normolization
     # T: Temporal Convolution Layer (Sigmoid)
     # F: Fully-Connected Layer
 
-    def __init__(self, channel, T, n_vertex, drop_rate):
+    def __init__(self, Ko, last_block_channel, channel, end_channel, n_vertex, gated_act_func, drop_rate):
         super(OutputBlock, self).__init__()
-        self.tmp_conv1 = TemporalConvLayer(T, channel[0], channel[1], n_vertex, "glu")
-        self.ln_tc1 = nn.LayerNorm([n_vertex, channel[1]])
-        self.tmp_conv2 = TemporalConvLayer(1, channel[1], channel[2], n_vertex, "sigmoid")
-        #self.ln_tc2 = nn.LayerNorm([n_vertex, channel[2]])
-        self.fc = FullyConnectedLayer(channel[2], channel[3])
-        #self.do = nn.Dropout(p=drop_rate)
+        self.Ko = Ko
+        self.last_block_channel = last_block_channel
+        self.channel = channel
+        self.end_channel = end_channel
+        self.n_vertex = n_vertex
+        self.gated_act_func = gated_act_func
+        self.enable_gated_act_func = True
+        self.drop_rate = drop_rate
+        self.tmp_conv1 = TemporalConvLayer(self.Ko, self.last_block_channel, self.channel[0], self.n_vertex, self.gated_act_func, self.enable_gated_act_func)
+        self.tmp_conv2 = LastTemporalConvLayer(1, self.channel[0], self.channel[1], self.n_vertex, "sigmoid")
+        self.fc = FullyConnectedLayer(self.channel[1], self.end_channel)
+        self.tc1_ln = nn.LayerNorm([self.n_vertex, self.channel[0]])
 
     def forward(self, x):
         x_tc1 = self.tmp_conv1(x)
-        x_ln_tc1 = self.ln_tc1(x_tc1.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
-        x_tc2 = self.tmp_conv2(x_ln_tc1)
+        x_tc1_ln = self.tc1_ln(x_tc1.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+        x_tc2 = self.tmp_conv2(x_tc1_ln)
         x_fc = self.fc(x_tc2)
         x_out = x_fc
         return x_out

@@ -25,17 +25,17 @@ https://arxiv.org/abs/1709.04875
 ### 15 mins (H=3)
 |  Model(paper)  |  Model(code)  |  Laplacian matrix type  |  Gated activation function  |  MAE  |  MAPE  |  RMSE  |
 |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |
-|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3, Kt=3)  |  sym  |  GLU  |  2.258984  |  5.330609%  |  4.025423  |
-|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv(Kt=3)  |  sym  |  GLU  |  2.230498  |  5.249552%  |  3.983621  |
+|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3, Kt=3)  |  sym  |  GLU  |  2.196439  |  5.120554%  |  3.942155  |
+|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv(Kt=3)  |  sym  |  GLU  |  2.200761  |  5.101906%  |  3.937438  |
 
 ### 30 mins (H=6)
 |  Model(paper)  |  Model(code)  |  Laplacian matrix type  |  Gated activation function  |  MAE  |  MAPE  |  RMSE  |
 |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |
-|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3, Kt=3)  |  sym  |  GLU  |  2.877363  |  7.028274%  |  5.256138  |
-|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv(Kt=3)  |  sym  |  GLU  |  2.902291  |  7.165167%  |  5.302092  |
+|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3, Kt=3)  |  sym  |  GLU  |  2.908268  |  7.004069%  |  5.287514  |
+|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv(Kt=3)  |  sym  |  GLU  |  2.831076  |  6.861572%  |  5.175758  |
 
 ### 45 mins (H=9)
 |  Model(paper)  |  Model(code)  |  Laplacian matrix type  |  Gated activation function  |  MAE  |  MAPE  |  RMSE  |
 |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |  ----  |
-|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3, Kt=3)  |  sym  |  GLU  |  3.196036  |  8.048447%  |  5.904350  |
-|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv(Kt=3)  |  sym  |  GLU  |  3.248762  |  8.097897%  |  5.914715  |
+|  STGCN(Cheb)  |  STGCN_ChebConv(Ks=3, Kt=3)  |  sym  |  GLU  |  3.312900  |  8.111004%  |  6.018192  |
+|  STGCN(1<sup>st</sup>)  |  STGCN_GCNConv(Kt=3)  |  sym  |  GLU  |  3.195088  |  7.912600%  |  5.845828  |
