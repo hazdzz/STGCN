@@ -4,7 +4,7 @@ import torch.nn as nn
 from model import layers
 
 class STGCN_ChebConv(nn.Module):
-    # STGCN(ChebConv) contains 'TSTN TSTN TNTF' structure
+    # STGCN(ChebConv) contains 'TSTND TSTND TNTF' structure
     # ChebConv is the graph convolution from ChebyNet.
     # Using the Chebyshev polynomials of the first kind to
     # approximate graph convolution kernel from Spectral CNN.
@@ -12,13 +12,15 @@ class STGCN_ChebConv(nn.Module):
         
     # T: Temporal Convolution Layer (GLU)
     # S: Spitial Convolution Layer (ChebConv)
-    # T: Temporal Convolution Layer (ReLU)
+    # T: Temporal Convolution Layer (GLU)
     # N: Layer Normolization
+    # D: Dropout
 
     # T: Temporal Convolution Layer (GLU)
     # S: Spitial Convolution Layer (ChebConv)
-    # T: Temporal Convolution Layer (ReLU)
+    # T: Temporal Convolution Layer (GLU)
     # N: Layer Normolization
+    # D: Dropout
 
     # T: Temporal Convolution Layer (GLU)
     # N: Layer Normalization
@@ -42,19 +44,21 @@ class STGCN_ChebConv(nn.Module):
         return x_out
 
 class STGCN_GCNConv(nn.Module):
-    # STGCN(GCNConv) contains 'TSTN TSTN TNTF' structure
+    # STGCN(GCNConv) contains 'TSTND TSTND TNTF' structure
     # GCNConv is the graph convolution from GCN.
     # https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/nn/conv/gcn_conv.html#GCNConv
         
     # T: Temporal Convolution Layer (GLU)
     # S: Spitial Convolution Layer (GCNConv)
-    # T: Temporal Convolution Layer (ReLU)
+    # T: Temporal Convolution Layer (GLU)
     # N: Layer Normolization
+    # D: Dropout
 
     # T: Temporal Convolution Layer (GLU)
     # S: Spitial Convolution Layer (GCNConv)
-    # T: Temporal Convolution Layer (ReLU)
+    # T: Temporal Convolution Layer (GLU)
     # N: Layer Normolization
+    # D: Dropout
 
     # T: Temporal Convolution Layer (GLU)
     # N: Layer Normalization
