@@ -9,11 +9,11 @@ class Align(nn.Module):
         super(Align, self).__init__()
         self.c_in = c_in
         self.c_out = c_out
-        self.fc = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_out, kernel_size=(1, 1))
+        self.align_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_out, kernel_size=(1, 1))
 
     def forward(self, x):
         if self.c_in > self.c_out:
-            x_align = self.fc(x)
+            x_align = self.align_conv(x)
         elif self.c_in < self.c_out:
             batch_size, c_in, timestep, n_vertex = x.shape
             x_align = torch.cat([x, torch.zeros([batch_size, self.c_out - self.c_in, timestep, n_vertex]).to(x)], dim=1)
