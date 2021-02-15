@@ -52,6 +52,7 @@ class TemporalConvLayer(nn.Module):
         self.tanh = nn.Tanh()
         self.relu = nn.ReLU()
         self.leakyrelu = nn.LeakyReLU()
+        self.elu = nn.ELU()
         self.softplus = nn.Softplus()
         self.softsign = nn.Softsign()
 
@@ -114,6 +115,11 @@ class TemporalConvLayer(nn.Module):
             elif self.act_func == "leakyrelu":
                 x_leakyrelu = self.leakyrelu(x_causal_conv + x_in)
                 x_tc_out = x_leakyrelu
+
+            # Temporal Convolution Layer (ELU)
+            elif self.act_func == "elu":
+                x_elu = self.elu(x_causal_conv + x_in)
+                x_tc_out = x_elu
 
             # Temporal Convolution Layer (Softplus)
             elif self.act_func == "softplus":
@@ -250,6 +256,7 @@ class LastTemporalConvLayer(nn.Module):
         self.tanh = nn.Tanh()
         self.relu = nn.ReLU()
         self.leakyrelu = nn.LeakyReLU()
+        self.elu = nn.ELU()
         self.softplus = nn.Softplus()
         self.softsign = nn.Softsign()
 
@@ -280,6 +287,11 @@ class LastTemporalConvLayer(nn.Module):
         elif self.act_func == "leakyrelu":
             x_leakyrelu = self.leakyrelu(x_last_tmp_conv)
             x_tc_out = x_leakyrelu
+
+        # Last Temporal Convolution Layer (ELU)
+        elif self.act_func == "elu":
+            x_elu = self.elu(x_last_tmp_conv)
+            x_tc_out = x_elu
 
         # Last Temporal Convolution Layer (Softplus)
         elif self.act_func == "softplus":
@@ -334,6 +346,8 @@ class STConvBlock(nn.Module):
         self.tmp_conv2 = TemporalConvLayer(self.Kt, self.channel[1], self.channel[2], self.n_vertex, self.gated_act_func, self.enable_gated_act_func)
         self.tc2_ln = nn.LayerNorm([self.n_vertex, self.channel[2]])
         self.relu = nn.ReLU()
+        #self.leakyrelu = nn.LeakyReLU()
+        #self.elu = nn.ELU()
         self.do = nn.Dropout(p=self.drop_rate)
 
     def forward(self, x):
@@ -367,6 +381,7 @@ class OutputBlock(nn.Module):
         self.tmp_conv2 = LastTemporalConvLayer(1, self.channel[0], self.channel[1], self.n_vertex, "sigmoid")
         self.fc = FullyConnectedLayer(self.channel[1], self.end_channel)
         self.tc1_ln = nn.LayerNorm([self.n_vertex, self.channel[0]])
+        #self.do = nn.Dropout(p=self.drop_rate)
 
     def forward(self, x):
         x_tc1 = self.tmp_conv1(x)
