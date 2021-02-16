@@ -17,7 +17,7 @@ def calculate_laplacian_matrix(adj_mat, mat_type):
     adj_mat = np.asmatrix(adj_mat)
     id_mat = np.asmatrix(np.identity(n_vertex))
 
-    # Symmetric
+    # Combinatorial
     com_lap_mat = deg_mat - adj_mat
 
     # For SpectraConv
