@@ -87,7 +87,7 @@ def calculate_ppr_adj_mat(lap_mat, alpha):
     return calculate_rwr_adj_mat(lap_mat, alpha)
 
 def calculate_hk_lap_mat(lap_mat, t):
-    hk_adj_mat = math.exp(np.multiply(lap_mat, -t))
+    hk_adj_mat = np.exp(np.multiply(lap_mat, -t))
 
     return hk_adj_mat
 
