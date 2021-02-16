@@ -55,6 +55,9 @@ def calculate_laplacian_matrix(adj_mat, mat_type, enable_trade_off_lambda, trade
     wid_adj_mat = adj_mat + trade_off_lambda * id_mat
     hat_rw_normd_lap_mat = np.matmul(np.linalg.matrix_power(wid_deg_mat, -1), wid_adj_mat)
 
+    # For GCNConv
+    lazy_rw_lap_mat = (id_mat + rw_lap_mat) / 2
+
     if mat_type == 'id_mat':
         return id_mat
     elif mat_type == 'com_lap_mat':
@@ -73,6 +76,8 @@ def calculate_laplacian_matrix(adj_mat, mat_type, enable_trade_off_lambda, trade
         return wid_rw_normd_lap_mat
     elif mat_type == 'hat_rw_normd_lap_mat':
         return hat_rw_normd_lap_mat
+    elif mat_type == 'lazy_rw_lap_mat':
+        return lazy_rw_lap_mat
     else:
         raise ValueError(f'ERROR: "{mat_type}" is unknown.')
 
