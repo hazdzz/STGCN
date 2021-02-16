@@ -83,8 +83,8 @@ def calculate_laplacian_matrix(adj_mat, mat_type, enable_trade_off_lambda, trade
 
 def calculate_rwr_adj_mat(lap_mat, alpha, epsilon):
     n_vertex = lap_mat.shape[0]
-    mat = np.identity(n_vertex) - np.multiply(lap_mat, (1 - alpha))
-    rwr_adj_mat = np.multiply(np.power(mat, -1), alpha)
+    mat = np.identity(n_vertex) - (1 - alpha) * lap_mat
+    rwr_adj_mat = alpha * np.power(mat, -1)
     rwr_adj_mat[rwr_adj_mat < epsilon] = 0
 
     return rwr_adj_mat
@@ -93,7 +93,7 @@ def calculate_ppr_adj_mat(lap_mat, alpha, epsilon):
     return calculate_rwr_adj_mat(lap_mat, alpha, epsilon)
 
 def calculate_hk_lap_mat(lap_mat, t, epsilon):
-    hk_adj_mat = np.exp(np.multiply(lap_mat, -t))
+    hk_adj_mat = np.exp((-t) * lap_mat)
     hk_adj_mat[hk_adj_mat < epsilon] = 0
 
     return hk_adj_mat
