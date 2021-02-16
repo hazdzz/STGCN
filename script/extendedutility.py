@@ -25,11 +25,11 @@ def calculate_laplacian_matrix(adj_mat, mat_type, enable_trade_off_lambda, trade
     com_lap_mat = deg_mat - adj_mat
 
     # For SpectraConv
-    # To (0, 1)
+    # To [0, 1]
     sym_normd_lap_mat = id_mat - np.matmul(np.matmul(fractional_matrix_power(deg_mat, -0.5), adj_mat), fractional_matrix_power(deg_mat, -0.5))
 
     # For ChebConv
-    # From (0, 1) to (-1, 1)
+    # From [0, 1] to [-1, 1]
     lambda_max_sym = eigs(sym_normd_lap_mat, k=1, which='LR')[0][0].real
     wid_sym_normd_lap_mat = 2 * sym_normd_lap_mat / lambda_max_sym - id_mat
 
@@ -42,11 +42,11 @@ def calculate_laplacian_matrix(adj_mat, mat_type, enable_trade_off_lambda, trade
     rw_lap_mat = np.matmul(np.linalg.matrix_power(deg_mat, -1), adj_mat)
 
     # For SpectraConv
-    # To (0, 1)
+    # To [0, 1]
     rw_normd_lap_mat = id_mat - rw_lap_mat
 
     # For ChebConv
-    # From (0, 1) to (-1, 1)
+    # From [0, 1] to [-1, 1]
     lambda_max_rw = eigs(rw_lap_mat, k=1, which='LR')[0][0].real
     wid_rw_normd_lap_mat = 2 * rw_normd_lap_mat / lambda_max_rw - id_mat
 
