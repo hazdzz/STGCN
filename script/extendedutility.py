@@ -7,6 +7,7 @@ def calculate_laplacian_matrix(adj_mat, mat_type, enable_trade_off_lambda, trade
 
     # row sum
     deg_mat_row = np.asmatrix(np.diag(np.sum(adj_mat, axis=1)))
+
     # column sum
     deg_mat_col = np.asmatrix(np.diag(np.sum(adj_mat, axis=0)))
 
@@ -83,7 +84,6 @@ def calculate_rwr_adj_mat(lap_mat, alpha):
     return rwr_adj_mat
 
 def calculate_ppr_adj_mat(lap_mat, alpha):
-
     return calculate_rwr_adj_mat(lap_mat, alpha)
 
 def calculate_hk_lap_mat(lap_mat, t):
@@ -96,6 +96,7 @@ def calculate_laplacian_matrix_in_ppr_or_hk(adj_mat, mat_type):
     
     # row sum
     deg_mat_row = np.asmatrix(np.diag(np.sum(adj_mat, axis=1)))
+    
     # column sum
     deg_mat_col = np.asmatrix(np.diag(np.sum(adj_mat, axis=0)))
     

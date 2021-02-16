@@ -9,10 +9,9 @@ def calculate_laplacian_matrix(adj_mat, mat_type):
     n_vertex = adj_mat.shape[0]
 
     # row sum
-    deg_mat_row = np.asmatrix(np.diag(np.sum(adj_mat, axis=1)))
+    #deg_mat_row = np.asmatrix(np.diag(np.sum(adj_mat, axis=1)))
     # column sum
     deg_mat_col = np.asmatrix(np.diag(np.sum(adj_mat, axis=0)))
-
     deg_mat = deg_mat_row
     
     adj_mat = np.asmatrix(adj_mat)
