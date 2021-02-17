@@ -215,9 +215,9 @@ class GCNConv(nn.Module):
         
         return x_gcnconv_out
 
-class SpatialConvLayer(nn.Module):
+class GraphConvLayer(nn.Module):
     def __init__(self, Ks, c_in, c_out, graph_conv_type, graph_conv_matrix):
-        super(SpatialConvLayer, self).__init__()
+        super(GraphConvLayer, self).__init__()
         self.Ks = Ks
         self.c_in = c_in
         self.c_out = c_out
@@ -237,10 +237,9 @@ class SpatialConvLayer(nn.Module):
             x_gc_out = self.chebconv(x_gc_in)
         elif self.graph_conv_type == "gcnconv":
             x_gc_out = self.gcnconv(x_gc_in)
-        x_sc = x_gc_out.reshape(batch_size, self.c_out, T, n_vertex).contiguous()
-        x_sc_with_rc = x_sc + x_gc_in.contiguous()
-        x_sc_out = x_sc_with_rc
-        return x_sc_out
+        x_gc_with_rc = x_gc_out.reshape(batch_size, self.c_out, T, n_vertex).contiguous() + x_gc_in.contiguous()
+        x_gc_out = x_gc_with_rc
+        return x_gc_out
 
 class LastTemporalConvLayer(nn.Module):
     def __init__(self, Kt, c_in, c_out, n_vertex, act_func):
@@ -323,9 +322,9 @@ class FullyConnectedLayer(nn.Module):
 
 class STConvBlock(nn.Module):
     # STConv Block contains 'TNSATND' structure
-    # T: Temporal Convolution Layer (GLU)
-    # S: Spitial Convolution Layer (ChebConv or GCNConv)
-    # T: Temporal Convolution Layer (GLU)
+    # T: Gated Temporal Convolution Layer (GLU or GTU)
+    # G: Graph Convolution Layer (ChebConv or GCNConv)
+    # T: Gated Temporal Convolution Layer (GLU or GTU)
     # N: Layer Normolization
     # D: Dropout
 
@@ -362,7 +361,7 @@ class STConvBlock(nn.Module):
 
 class OutputBlock(nn.Module):
     # Output block contains 'TNF' structure
-    # T: Temporal Convolution Layer (GLU)
+    # T: Gated Temporal Convolution Layer (GLU or GTU)
     # N: Layer Normolization
     # T: Temporal Convolution Layer (Sigmoid)
     # F: Fully-Connected Layer
