@@ -123,8 +123,6 @@ def get_parameters():
 
     time_pred = n_pred * time_intvl
     time_pred_str = '_' + str(time_pred) + '_mins'
-    checkpoint_path = ConfigSectionMap('graphconv')['checkpoint_path']
-    checkpoint_path = checkpoint_path + dataset + time_pred_str + '.pth'
     model_save_path = ConfigSectionMap('graphconv')['model_save_path']
     model_save_path = model_save_path + dataset + time_pred_str + '.pth'
 
@@ -158,7 +156,7 @@ def get_parameters():
         if (mat_type != "hat_sym_normd_lap_mat") and (mat_type != "hat_rw_normd_lap_mat"):
             raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')
 
-    return device, n_his, n_pred, day_slot, checkpoint_path, model_save_path, data_path, n_vertex, batch_size, drop_rate, opt, epochs, graph_conv_type, model
+    return device, n_his, n_pred, day_slot, model_save_path, data_path, n_vertex, batch_size, drop_rate, opt, epochs, graph_conv_type, model
 
 def data_preparate(data_path, device, n_his, n_pred, day_slot, batch_size):
     data_col = pd.read_csv(data_path, header=None).shape[0]
@@ -189,11 +187,11 @@ def data_preparate(data_path, device, n_his, n_pred, day_slot, batch_size):
 
     return zscore, train_iter, val_iter, test_iter
 
-def main(graph_conv_type, checkpoint_path, model, n_his, n_vertex, opt):
+def main(graph_conv_type, model_save_path, model, n_his, n_vertex, opt):
     loss = nn.MSELoss()
     learning_rate = 1e-3
     weight_decay_rate = 5e-4
-    early_stopping = earlystopping.EarlyStopping(patience=30, path=checkpoint_path, verbose=True)
+    early_stopping = earlystopping.EarlyStopping(patience=30, path=model_save_path, verbose=True)
 
     model_stats = summary(model, (1, n_his, n_vertex))
 
@@ -232,7 +230,7 @@ def train(loss, epochs, optimizer, scheduler, early_stopping, model, model_save_
         gpu_mem_alloc = torch.cuda.max_memory_allocated() / 1000000 if torch.cuda.is_available() else 0
         if val_loss < min_val_loss:
             min_val_loss = val_loss
-            torch.save(model.state_dict(), model_save_path)
+            #torch.save(model.state_dict(), model_save_path)
         print('Epoch: {:03d} | Lr: {:.20f} |Train loss: {:.6f} | Val loss: {:.6f} | GPU occupy: {:.6f} MiB'.\
             format(epoch, optimizer.param_groups[0]['lr'], l_sum / n, val_loss, gpu_mem_alloc))
 
@@ -280,9 +278,9 @@ if __name__ == "__main__":
     #logging.basicConfig(filename='stgcn.log', level=logging.INFO)
     logging.basicConfig(level=logging.INFO)
 
-    device, n_his, n_pred, day_slot, checkpoint_path, model_save_path, data_path, n_vertex, batch_size, drop_rate, opt, epochs, graph_conv_type, model = get_parameters()
+    device, n_his, n_pred, day_slot, model_save_path, data_path, n_vertex, batch_size, drop_rate, opt, epochs, graph_conv_type, model = get_parameters()
     zscore, train_iter, val_iter, test_iter = data_preparate(data_path, device, n_his, n_pred, day_slot, batch_size)
-    loss, early_stopping, optimizer, scheduler = main(graph_conv_type, checkpoint_path, model, n_his, n_vertex, opt)
+    loss, early_stopping, optimizer, scheduler = main(graph_conv_type, model_save_path, model, n_his, n_vertex, opt)
 
     # Training
     train(loss, epochs, optimizer, scheduler, early_stopping, model, model_save_path, train_iter, val_iter)
