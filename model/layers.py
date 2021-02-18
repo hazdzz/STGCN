@@ -341,7 +341,7 @@ class STConvBlock(nn.Module):
         self.graph_conv_matrix = graph_conv_matrix
         self.drop_rate = drop_rate
         self.tmp_conv1 = TemporalConvLayer(self.Kt, self.last_block_channel, self.channel[0], self.n_vertex, self.gated_act_func, self.enable_gated_act_func)
-        self.spat_conv = SpatialConvLayer(self.Ks, self.channel[0], self.channel[1], self.graph_conv_type, self.graph_conv_matrix)
+        self.spat_conv = GraphConvLayer(self.Ks, self.channel[0], self.channel[1], self.graph_conv_type, self.graph_conv_matrix)
         self.tmp_conv2 = TemporalConvLayer(self.Kt, self.channel[1], self.channel[2], self.n_vertex, self.gated_act_func, self.enable_gated_act_func)
         self.tc2_ln = nn.LayerNorm([self.n_vertex, self.channel[2]])
         self.relu = nn.ReLU()
