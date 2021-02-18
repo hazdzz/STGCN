@@ -4,7 +4,7 @@ import torch.nn as nn
 from model import layers
 
 class STGCN_ChebConv(nn.Module):
-    # STGCN(ChebConv) contains 'TGTND TGTND TNTF' structure
+    # STGCN(ChebConv) contains 'TGTND TGTND TNFF' structure
     # ChebConv is the graph convolution from ChebyNet.
     # Using the Chebyshev polynomials of the first kind to
     # approximate graph convolution kernel from Spectral CNN.
@@ -24,7 +24,7 @@ class STGCN_ChebConv(nn.Module):
 
     # T: Gated Temporal Convolution Layer (GLU or GTU)
     # N: Layer Normalization
-    # T: Temporal Convolution Layer (Sigmoid)
+    # F: Fully-Connected Layer
     # F: Fully-Connected Layer
 
     def __init__(self, Kt, Ks, begin_channel, blocks, end_channel, T, n_vertex, gated_act_func, graph_conv_type, chebconv_matrix_list, drop_rate):
@@ -44,7 +44,7 @@ class STGCN_ChebConv(nn.Module):
         return x_out
 
 class STGCN_GCNConv(nn.Module):
-    # STGCN(GCNConv) contains 'TGTND TGTND TNTF' structure
+    # STGCN(GCNConv) contains 'TGTND TGTND TNFF' structure
     # GCNConv is the graph convolution from GCN.
     # https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/nn/conv/gcn_conv.html#GCNConv
         
@@ -62,7 +62,7 @@ class STGCN_GCNConv(nn.Module):
 
     # T: Gated Temporal Convolution Layer (GLU or GTU)
     # N: Layer Normalization
-    # T: Temporal Convolution Layer (Sigmoid)
+    # F: Fully-Connected Layer
     # F: Fully-Connected Layer
 
     def __init__(self, Kt, Ks, begin_channel, blocks, end_channel, T, n_vertex, gated_act_func, graph_conv_type, gcnconv_matrix, drop_rate):

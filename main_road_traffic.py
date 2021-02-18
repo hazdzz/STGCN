@@ -116,7 +116,7 @@ def get_parameters():
     # using the bottleneck design in st_conv_blocks
     blocks = [[64, 16, 64], [64, 16, 64], [128, 128]]
     begin_channel = 1
-    end_channel = 128
+    end_channel = 1
 
     day_slot = int(24 * 60 / time_intvl)
     n_pred = args.n_pred
@@ -163,10 +163,10 @@ def data_preparate(data_path, device, n_his, n_pred, day_slot, batch_size):
     # recommended dataset split rate as train: val: test = 60: 20: 20, 70: 15: 15 or 80: 10: 10
     # using dataset split rate as train: val: test = 80: 10: 10
     val_and_test_rate = 0.1
-    n_val = int(math.floor(data_col / day_slot * val_and_test_rate))
-    n_test = int(math.floor(data_col / day_slot * val_and_test_rate))
-    n_train = int(data_col - n_val - n_test)
-    len_train, len_val, len_test = n_train * day_slot, n_val * day_slot, n_test * day_slot
+
+    len_val = int(math.floor(data_col * val_and_test_rate))
+    len_test = int(math.floor(data_col * val_and_test_rate))
+    len_train = int(data_col - len_val - len_test)
 
     train, val, test = dataloader.load_data(data_path, len_train, len_val)
     zscore = preprocessing.StandardScaler()

@@ -241,85 +241,6 @@ class GraphConvLayer(nn.Module):
         x_gc_out = x_gc_with_rc
         return x_gc_out
 
-class LastTemporalConvLayer(nn.Module):
-    def __init__(self, Kt, c_in, c_out, n_vertex, act_func):
-        super(LastTemporalConvLayer, self).__init__()
-        self.Kt = Kt
-        self.c_in = c_in
-        self.c_out = c_out
-        self.n_vertex = n_vertex
-        self.act_func = act_func
-        self.last_tmp_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_out, kernel_size=(Kt, 1), dilation=1)
-        self.linear = nn.Linear(self.n_vertex, self.n_vertex)
-        self.sigmoid = nn.Sigmoid()
-        self.tanh = nn.Tanh()
-        self.relu = nn.ReLU()
-        self.leakyrelu = nn.LeakyReLU()
-        self.elu = nn.ELU()
-        self.softplus = nn.Softplus()
-        self.softsign = nn.Softsign()
-
-    def forward(self, x):
-        x_last_tmp_conv = self.last_tmp_conv(x)
-
-        # Last Temporal Convolution Layer (Linear)
-        if self.act_func == "linear":
-            x_linear = self.linear(x_last_tmp_conv)
-            x_tc_out = x_linear
-            
-        # Last Temporal Convolution Layer (Sigmoid)
-        elif self.act_func == "sigmoid":
-            x_sigmoid = self.sigmoid(x_last_tmp_conv)
-            x_tc_out = x_sigmoid
-
-        # Last Temporal Convolution Layer (Tanh)
-        elif self.act_func == "tanh":
-            x_tanh = self.tanh(x_last_tmp_conv)
-            x_tc_out = x_tanh
-
-        # Last Temporal Convolution Layer (ReLU)
-        elif self.act_func == "relu":
-            x_relu = self.relu(x_last_tmp_conv)
-            x_tc_out = x_relu
-        
-        # Last Temporal Convolution Layer (LeakyReLU)
-        elif self.act_func == "leakyrelu":
-            x_leakyrelu = self.leakyrelu(x_last_tmp_conv)
-            x_tc_out = x_leakyrelu
-
-        # Last Temporal Convolution Layer (ELU)
-        elif self.act_func == "elu":
-            x_elu = self.elu(x_last_tmp_conv)
-            x_tc_out = x_elu
-
-        # Last Temporal Convolution Layer (Softplus)
-        elif self.act_func == "softplus":
-            x_softplus = self.softplus(x_last_tmp_conv)
-            x_tc_out = x_softplus
-
-        # Last Temporal Convolution Layer (Softsign)
-        elif self.act_func == "softsign":
-            x_softsign = self.softsign(x_last_tmp_conv)
-            x_tc_out = x_softsign
-        
-        else:
-            raise ValueError(f'ERROR: activation function "{self.act_func}" is not defined.')
-
-        return x_tc_out
-
-class FullyConnectedLayer(nn.Module):
-    def __init__(self, c_in, c_out):
-        super(FullyConnectedLayer, self).__init__()
-        self.c_in = c_in
-        self.c_out = c_out
-        self.align = Align(self.c_in, self.c_out)
-        self.fc = nn.Conv2d(in_channels=self.c_out, out_channels=1, kernel_size=(1, 1))
-    
-    def forward(self, x):
-        x_fc_in = self.align(x)
-        x_fc_out = self.fc(x_fc_in)
-        return x_fc_out
-
 class STConvBlock(nn.Module):
     # STConv Block contains 'TNSATND' structure
     # T: Gated Temporal Convolution Layer (GLU or GTU)
@@ -360,10 +281,10 @@ class STConvBlock(nn.Module):
         return x_st_conv_out
 
 class OutputBlock(nn.Module):
-    # Output block contains 'TNF' structure
+    # Output block contains 'TNFF' structure
     # T: Gated Temporal Convolution Layer (GLU or GTU)
     # N: Layer Normolization
-    # T: Temporal Convolution Layer (Sigmoid)
+    # F: Fully-Connected Layer
     # F: Fully-Connected Layer
 
     def __init__(self, Ko, last_block_channel, channel, end_channel, n_vertex, gated_act_func, drop_rate):
@@ -377,15 +298,19 @@ class OutputBlock(nn.Module):
         self.enable_gated_act_func = True
         self.drop_rate = drop_rate
         self.tmp_conv1 = TemporalConvLayer(self.Ko, self.last_block_channel, self.channel[0], self.n_vertex, self.gated_act_func, self.enable_gated_act_func)
-        self.tmp_conv2 = LastTemporalConvLayer(1, self.channel[0], self.channel[1], self.n_vertex, "sigmoid")
-        self.fc = FullyConnectedLayer(self.channel[1], self.end_channel)
+        self.fc1 = nn.Linear(self.channel[0], self.channel[1])
+        self.fc2 = nn.Linear(self.channel[1], self.end_channel)
         self.tc1_ln = nn.LayerNorm([self.n_vertex, self.channel[0]])
+        self.sigmoid = nn.Sigmoid()
+        #self.tanh = nn.Tanh()
+        #self.relu = nn.ReLU()
         #self.do = nn.Dropout(p=self.drop_rate)
 
     def forward(self, x):
         x_tc1 = self.tmp_conv1(x)
-        x_tc1_ln = self.tc1_ln(x_tc1.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
-        x_tc2 = self.tmp_conv2(x_tc1_ln)
-        x_fc = self.fc(x_tc2)
-        x_out = x_fc
+        x_tc1_ln = self.tc1_ln(x_tc1.permute(0, 2, 3, 1))
+        x_fc1 = self.fc1(x_tc1_ln)
+        x_sigmoid = self.sigmoid(x_fc1)
+        x_fc2 = self.fc2(x_sigmoid).permute(0, 3, 1, 2)
+        x_out = x_fc2
         return x_out
