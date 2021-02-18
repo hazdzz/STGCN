@@ -162,10 +162,9 @@ def data_preparate(data_path, device, n_his, n_pred, day_slot, batch_size):
     data_col = pd.read_csv(data_path, header=None).shape[0]
     # recommended dataset split rate as train: val: test = 60: 20: 20, 70: 15: 15 or 80: 10: 10
     # using dataset split rate as train: val: test = 80: 10: 10
-    #n_train = math.floor(data_col / day_slot * 0.8)
-    #n_val = math.floor(data_col / day_slot * 0.1)
-    #n_test = data_col / day_slot - n_train - n_val
-    n_train, n_val, n_test = 34, 5, 5
+    n_val = math.floor(data_col / day_slot * 0.1)
+    n_test = math.floor(data_col / day_slot * 0.1)
+    n_train = day_slot - n_val - n_test
     len_train, len_val, len_test = n_train * day_slot, n_val * day_slot, n_test * day_slot
 
     train, val, test = dataloader.load_data(data_path, len_train, len_val)
