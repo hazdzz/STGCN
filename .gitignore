@@ -4,3 +4,6 @@
 # Python
 _pycache_/
 *.py[cod]
+
+# macOS
+.DS_Store

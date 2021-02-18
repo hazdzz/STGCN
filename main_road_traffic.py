@@ -39,8 +39,8 @@ def get_parameters():
     parser = argparse.ArgumentParser(description='STGCN for road traffic prediction')
     parser.add_argument('--enable_cuda', type=bool, default='True',
                         help='enable CUDA, default as True')
-    parser.add_argument('--n_pred', type=int, default=9, 
-                        help='the number of time interval for predcition, default as 9 (literally means 45 mins)')
+    parser.add_argument('--n_pred', type=int, default=12, 
+                        help='the number of time interval for predcition, default as 9')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='batch size, defualt as 32')
     parser.add_argument('--epochs', type=int, default=500,
@@ -89,6 +89,7 @@ def get_parameters():
     n_his = int(ConfigSectionMap('data')['n_his'])
     data_path = ConfigSectionMap('data')['data_path']
     wam_path = ConfigSectionMap('data')['wam_path']
+    model_save_path = ConfigSectionMap('data')['model_save_path']
 
     config.read(model_config_path, encoding="utf-8")
 
@@ -122,9 +123,9 @@ def get_parameters():
     n_pred = args.n_pred
 
     time_pred = n_pred * time_intvl
-    time_pred_str = '_' + str(time_pred) + '_mins'
-    model_save_path = ConfigSectionMap('graphconv')['model_save_path']
-    model_save_path = model_save_path + dataset + time_pred_str + '.pth'
+    time_pred_str = str(time_pred) + '_mins'
+    model_name = ConfigSectionMap('graphconv')['model_name']
+    model_save_path = model_save_path + model_name + '_' + dataset + '_' + time_pred_str + '.pth'
 
     adj_mat = dataloader.load_weighted_adjacency_matrix(wam_path)
 
