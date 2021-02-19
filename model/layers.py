@@ -249,22 +249,22 @@ class STConvBlock(nn.Module):
     # N: Layer Normolization
     # D: Dropout
 
-    def __init__(self, Kt, Ks, n_vertex, last_block_channel, channel, gated_act_func, graph_conv_type, graph_conv_matrix, drop_rate):
+    def __init__(self, Kt, Ks, n_vertex, last_block_channel, channels, gated_act_func, graph_conv_type, graph_conv_matrix, drop_rate):
         super(STConvBlock, self).__init__()
         self.Kt = Kt
         self.Ks = Ks
         self.n_vertex = n_vertex
         self.last_block_channel = last_block_channel
-        self.channel = channel
+        self.channels = channels
         self.gated_act_func = gated_act_func
         self.enable_gated_act_func = True
         self.graph_conv_type = graph_conv_type
         self.graph_conv_matrix = graph_conv_matrix
         self.drop_rate = drop_rate
-        self.tmp_conv1 = TemporalConvLayer(self.Kt, self.last_block_channel, self.channel[0], self.n_vertex, self.gated_act_func, self.enable_gated_act_func)
-        self.spat_conv = GraphConvLayer(self.Ks, self.channel[0], self.channel[1], self.graph_conv_type, self.graph_conv_matrix)
-        self.tmp_conv2 = TemporalConvLayer(self.Kt, self.channel[1], self.channel[2], self.n_vertex, self.gated_act_func, self.enable_gated_act_func)
-        self.tc2_ln = nn.LayerNorm([self.n_vertex, self.channel[2]])
+        self.tmp_conv1 = TemporalConvLayer(self.Kt, self.last_block_channel, self.channels[0], self.n_vertex, self.gated_act_func, self.enable_gated_act_func)
+        self.spat_conv = GraphConvLayer(self.Ks, self.channels[0], self.channels[1], self.graph_conv_type, self.graph_conv_matrix)
+        self.tmp_conv2 = TemporalConvLayer(self.Kt, self.channels[1], self.channels[2], self.n_vertex, self.gated_act_func, self.enable_gated_act_func)
+        self.tc2_ln = nn.LayerNorm([self.n_vertex, self.channels[2]])
         self.relu = nn.ReLU()
         #self.leakyrelu = nn.LeakyReLU()
         #self.elu = nn.ELU()
@@ -287,20 +287,20 @@ class OutputBlock(nn.Module):
     # F: Fully-Connected Layer
     # F: Fully-Connected Layer
 
-    def __init__(self, Ko, last_block_channel, channel, end_channel, n_vertex, gated_act_func, drop_rate):
+    def __init__(self, Ko, last_block_channel, channels, end_channel, n_vertex, gated_act_func, drop_rate):
         super(OutputBlock, self).__init__()
         self.Ko = Ko
         self.last_block_channel = last_block_channel
-        self.channel = channel
+        self.channels = channels
         self.end_channel = end_channel
         self.n_vertex = n_vertex
         self.gated_act_func = gated_act_func
         self.enable_gated_act_func = True
         self.drop_rate = drop_rate
-        self.tmp_conv1 = TemporalConvLayer(self.Ko, self.last_block_channel, self.channel[0], self.n_vertex, self.gated_act_func, self.enable_gated_act_func)
-        self.fc1 = nn.Linear(self.channel[0], self.channel[1])
-        self.fc2 = nn.Linear(self.channel[1], self.end_channel)
-        self.tc1_ln = nn.LayerNorm([self.n_vertex, self.channel[0]])
+        self.tmp_conv1 = TemporalConvLayer(self.Ko, self.last_block_channel, self.channels[0], self.n_vertex, self.gated_act_func, self.enable_gated_act_func)
+        self.fc1 = nn.Linear(self.channels[0], self.channels[1])
+        self.fc2 = nn.Linear(self.channels[1], self.end_channel)
+        self.tc1_ln = nn.LayerNorm([self.n_vertex, self.channels[0]])
         self.sigmoid = nn.Sigmoid()
         #self.tanh = nn.Tanh()
         #self.relu = nn.ReLU()

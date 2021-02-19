@@ -39,8 +39,8 @@ def get_parameters():
     parser = argparse.ArgumentParser(description='STGCN for road traffic prediction')
     parser.add_argument('--enable_cuda', type=bool, default='True',
                         help='enable CUDA, default as True')
-    parser.add_argument('--n_pred', type=int, default=12, 
-                        help='the number of time interval for predcition, default as 9')
+    parser.add_argument('--n_pred', type=int, default=3, 
+                        help='the number of time interval for predcition, default as 3')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='batch size, defualt as 32')
     parser.add_argument('--epochs', type=int, default=500,
@@ -87,17 +87,16 @@ def get_parameters():
     n_vertex = int(ConfigSectionMap('data')['n_vertex'])
     time_intvl = int(ConfigSectionMap('data')['time_intvl'])
     n_his = int(ConfigSectionMap('data')['n_his'])
+    Kt = int(ConfigSectionMap('data')['kt'])
+    stblock_num = int(ConfigSectionMap('data')['stblock_num'])
+    if ((Kt - 1) * 2 * stblock_num > n_his) or ((Kt - 1) * 2 * stblock_num <= 0):
+        raise ValueError(f'ERROR: "{Kt}" and "{stblock_num}" are unacceptable.')
+    Ko = n_his - (Kt - 1) * 2 * stblock_num
     data_path = ConfigSectionMap('data')['data_path']
     wam_path = ConfigSectionMap('data')['wam_path']
     model_save_path = ConfigSectionMap('data')['model_save_path']
 
     config.read(model_config_path, encoding="utf-8")
-
-    Kt = int(ConfigSectionMap('casualconv')['kt'])
-    if (Kt != 2) and (Kt != 3):
-        raise ValueError(f'ERROR: Kt must be 2 or 3, "{Kt}" is unacceptable, unless you rewrite the code.')
-    else:
-        Kt = Kt
 
     gated_act_func = ConfigSectionMap('casualconv')['gated_act_func']
     
@@ -115,9 +114,16 @@ def get_parameters():
 
     # blocks: settings of channel size in st_conv_blocks and output layer,
     # using the bottleneck design in st_conv_blocks
-    blocks = [[64, 16, 64], [64, 16, 64], [128, 128]]
-    begin_channel = 1
-    end_channel = 1
+    blocks = []
+    blocks.append([1])
+    for l in range(stblock_num):
+        blocks.append([64, 16, 64])
+    if Ko == 0:
+        blocks.append([128])
+    elif Ko > 0:
+        blocks.append([128, 128])
+    blocks.append([1])
+    
 
     day_slot = int(24 * 60 / time_intvl)
     n_pred = args.n_pred
@@ -145,14 +151,14 @@ def get_parameters():
         mat = utility.calculate_laplacian_matrix(adj_mat, mat_type)
         graph_conv_matrix_list = utility.calculate_chebconv_graph_matrix_list(mat, Ks)
         chebconv_matrix_list = torch.from_numpy(graph_conv_matrix_list).float().to(device)
-        stgcn_chebconv = models.STGCN_ChebConv(Kt, Ks, begin_channel, blocks, end_channel, n_his, n_vertex, gated_act_func, graph_conv_type, chebconv_matrix_list, drop_rate).to(device)
+        stgcn_chebconv = models.STGCN_ChebConv(Kt, Ks, blocks, n_his, n_vertex, gated_act_func, graph_conv_type, chebconv_matrix_list, drop_rate).to(device)
         model = stgcn_chebconv
         if (mat_type != "wid_sym_normd_lap_mat") and (mat_type != "wid_rw_normd_lap_mat"):
             raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')
     elif graph_conv_type == "gcnconv":
         mat = utility.calculate_laplacian_matrix(adj_mat, mat_type)
         gcnconv_matrix = torch.from_numpy(mat).float().to(device)
-        stgcn_gcnconv = models.STGCN_GCNConv(Kt, Ks, begin_channel, blocks, end_channel, n_his, n_vertex, gated_act_func, graph_conv_type, gcnconv_matrix, drop_rate).to(device)
+        stgcn_gcnconv = models.STGCN_GCNConv(Kt, Ks, blocks, n_his, n_vertex, gated_act_func, graph_conv_type, gcnconv_matrix, drop_rate).to(device)
         model = stgcn_gcnconv
         if (mat_type != "hat_sym_normd_lap_mat") and (mat_type != "hat_rw_normd_lap_mat"):
             raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')

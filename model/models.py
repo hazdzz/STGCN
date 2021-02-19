@@ -27,20 +27,33 @@ class STGCN_ChebConv(nn.Module):
     # F: Fully-Connected Layer
     # F: Fully-Connected Layer
 
-    def __init__(self, Kt, Ks, begin_channel, blocks, end_channel, T, n_vertex, gated_act_func, graph_conv_type, chebconv_matrix_list, drop_rate):
+    def __init__(self, Kt, Ks, blocks, T, n_vertex, gated_act_func, graph_conv_type, chebconv_matrix_list, drop_rate):
         super(STGCN_ChebConv, self).__init__()
-        self.st_block1 = layers.STConvBlock(Kt, Ks, n_vertex, begin_channel, blocks[0], gated_act_func, graph_conv_type, chebconv_matrix_list, drop_rate)
-        self.st_block2 = layers.STConvBlock(Kt, Ks, n_vertex, blocks[0][-1] , blocks[1], gated_act_func, graph_conv_type, chebconv_matrix_list, drop_rate)
-        Ko = T - (len(blocks) - 1) * 2 * (Kt - 1)
-        if Ko > 1:
-            self.output = layers.OutputBlock(Ko, blocks[-2][-1], blocks[-1], end_channel, n_vertex, gated_act_func, drop_rate)
-        else:
-            raise ValueError(f'ERROR: kernel size Ko must be greater than 1, but received "{Ko}".')
+        modules = []
+        for l in range(len(blocks) - 3):
+            modules.append(layers.STConvBlock(Kt, Ks, n_vertex, blocks[l][-1], blocks[l+1], gated_act_func, graph_conv_type, chebconv_matrix_list, drop_rate))
+        self.st_blocks = nn.Sequential(*modules)
+        Ko = T - (len(blocks) - 3) * 2 * (Kt - 1)
+        self.Ko = Ko
+        if self.Ko > 1:
+            self.output = layers.OutputBlock(Ko, blocks[-3][-1], blocks[-2], blocks[-1][0], n_vertex, gated_act_func, drop_rate)
+        elif self.Ko == 0:
+            self.fc1 = nn.Linear(blocks[-3][-1], blocks[-2][0])
+            self.fc2 = nn.Linear(blocks[-2][0], blocks[-1][0])
+            self.sigmoid = nn.Sigmoid()
+            #self.tanh = nn.Tanh()
+            #self.relu = nn.ReLU()
+            #self.do = nn.Dropout(p=self.drop_rate)
 
     def forward(self, x):
-        x_stb1 = self.st_block1(x)
-        x_stb2 = self.st_block2(x_stb1)
-        x_out = self.output(x_stb2)
+        x_stbs = self.st_blocks(x)
+        if self.Ko > 1:
+            x_out = self.output(x_stbs)
+        elif self.Ko == 0:
+            x_fc1 = self.fc1(x_stbs.permute(0, 2, 3, 1))
+            x_sigmoid = self.sigmoid(x_fc1)
+            x_fc2 = self.fc2(x_sigmoid).permute(0, 3, 1, 2)
+            x_out = x_fc2
         return x_out
 
 class STGCN_GCNConv(nn.Module):
@@ -65,18 +78,31 @@ class STGCN_GCNConv(nn.Module):
     # F: Fully-Connected Layer
     # F: Fully-Connected Layer
 
-    def __init__(self, Kt, Ks, begin_channel, blocks, end_channel, T, n_vertex, gated_act_func, graph_conv_type, gcnconv_matrix, drop_rate):
+    def __init__(self, Kt, Ks, blocks, T, n_vertex, gated_act_func, graph_conv_type, gcnconv_matrix, drop_rate):
         super(STGCN_GCNConv, self).__init__()
-        self.st_block1 = layers.STConvBlock(Kt, Ks, n_vertex, begin_channel, blocks[0], gated_act_func, graph_conv_type, gcnconv_matrix, drop_rate)
-        self.st_block2 = layers.STConvBlock(Kt, Ks, n_vertex, blocks[0][-1] , blocks[1], gated_act_func, graph_conv_type, gcnconv_matrix, drop_rate)
-        Ko = T - (len(blocks) - 1) * 2 * (Kt - 1)
-        if Ko > 1:
-            self.output = layers.OutputBlock(Ko, blocks[-2][-1], blocks[-1], end_channel, n_vertex, gated_act_func, drop_rate)
-        else:
-            raise ValueError(f'ERROR: kernel size Ko must be greater than 1, but received "{Ko}".')
+        modules = []
+        for l in range(len(blocks) - 3):
+            modules.append(layers.STConvBlock(Kt, Ks, n_vertex, blocks[l][-1], blocks[l+1], gated_act_func, graph_conv_type, gcnconv_matrix, drop_rate))
+        self.st_blocks = nn.Sequential(*modules)
+        Ko = T - (len(blocks) - 3) * 2 * (Kt - 1)
+        self.Ko = Ko
+        if self.Ko > 1:
+            self.output = layers.OutputBlock(Ko, blocks[-3][-1], blocks[-2], blocks[-1][0], n_vertex, gated_act_func, drop_rate)
+        elif self.Ko == 0:
+            self.fc1 = nn.Linear(blocks[-3][-1], blocks[-2][0])
+            self.fc2 = nn.Linear(blocks[-2][0], blocks[-1][0])
+            self.sigmoid = nn.Sigmoid()
+            #self.tanh = nn.Tanh()
+            #self.relu = nn.ReLU()
+            #self.do = nn.Dropout(p=self.drop_rate)
 
     def forward(self, x):
-        x_stb1 = self.st_block1(x)
-        x_stb2 = self.st_block2(x_stb1)
-        x_out = self.output(x_stb2)
+        x_stbs = self.st_blocks(x)
+        if self.Ko > 1:
+            x_out = self.output(x_stbs)
+        elif self.Ko == 0:
+            x_fc1 = self.fc1(x_stbs.permute(0, 2, 3, 1))
+            x_sigmoid = self.sigmoid(x_fc1)
+            x_fc2 = self.fc2(x_sigmoid).permute(0, 3, 1, 2)
+            x_out = x_fc2
         return x_out
