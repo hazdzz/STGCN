@@ -40,10 +40,17 @@ class STGCN_ChebConv(nn.Module):
         elif self.Ko == 0:
             self.fc1 = nn.Linear(blocks[-3][-1], blocks[-2][0])
             self.fc2 = nn.Linear(blocks[-2][0], blocks[-1][0])
+            self.act_func = 'sigmoid'
             self.sigmoid = nn.Sigmoid()
-            #self.tanh = nn.Tanh()
-            #self.relu = nn.ReLU()
-            #self.do = nn.Dropout(p=self.drop_rate)
+            self.tanh = nn.Tanh()
+            self.softsign = nn.Softsign()
+            self.relu = nn.ReLU()
+            self.softplus = nn.Softplus()
+            self.leakyrelu = nn.LeakyReLU()
+            self.prelu = nn.PReLU()
+            self.elu = nn.ELU()
+            self.selu = nn.SELU()
+            self.do = nn.Dropout(p=self.drop_rate)
 
     def forward(self, x):
         x_stbs = self.st_blocks(x)
@@ -51,8 +58,25 @@ class STGCN_ChebConv(nn.Module):
             x_out = self.output(x_stbs)
         elif self.Ko == 0:
             x_fc1 = self.fc1(x_stbs.permute(0, 2, 3, 1))
-            x_sigmoid = self.sigmoid(x_fc1)
-            x_fc2 = self.fc2(x_sigmoid).permute(0, 3, 1, 2)
+            if self.act_func == 'sigmoid':
+                x_act_func = self.sigmoid(x_fc1)
+            elif self.act_func == 'tanh':
+                x_act_func = self.tanh(x_fc1)
+            elif self.act_func == 'softsign':
+                x_act_func = self.softsign(x_fc1)
+            elif self.act_func == 'relu':
+                x_act_func = self.relu(x_fc1)
+            elif self.act_func == 'softplus':
+                x_act_func = self.softplus(x_fc1)
+            elif self.act_func == 'leakyrelu':
+                x_act_func = self.leakyrelu(x_fc1)
+            elif self.act_func == 'prelu':
+                x_act_func = self.prelu(x_fc1)
+            elif self.act_func == 'elu':
+                x_act_func = self.elu(x_fc1)
+            elif self.act_func == 'selu':
+                x_act_func = self.selu(x_fc1)
+            x_fc2 = self.fc2(x_act_func).permute(0, 3, 1, 2)
             x_out = x_fc2
         return x_out
 
@@ -91,10 +115,17 @@ class STGCN_GCNConv(nn.Module):
         elif self.Ko == 0:
             self.fc1 = nn.Linear(blocks[-3][-1], blocks[-2][0])
             self.fc2 = nn.Linear(blocks[-2][0], blocks[-1][0])
+            self.act_func = 'sigmoid'
             self.sigmoid = nn.Sigmoid()
-            #self.tanh = nn.Tanh()
-            #self.relu = nn.ReLU()
-            #self.do = nn.Dropout(p=self.drop_rate)
+            self.tanh = nn.Tanh()
+            self.softsign = nn.Softsign()
+            self.relu = nn.ReLU()
+            self.softplus = nn.Softplus()
+            self.leakyrelu = nn.LeakyReLU()
+            self.prelu = nn.PReLU()
+            self.elu = nn.ELU()
+            self.selu = nn.SELU()
+            self.do = nn.Dropout(p=self.drop_rate)
 
     def forward(self, x):
         x_stbs = self.st_blocks(x)
@@ -102,7 +133,24 @@ class STGCN_GCNConv(nn.Module):
             x_out = self.output(x_stbs)
         elif self.Ko == 0:
             x_fc1 = self.fc1(x_stbs.permute(0, 2, 3, 1))
-            x_sigmoid = self.sigmoid(x_fc1)
-            x_fc2 = self.fc2(x_sigmoid).permute(0, 3, 1, 2)
+            if self.act_func == 'sigmoid':
+                x_act_func = self.sigmoid(x_fc1)
+            elif self.act_func == 'tanh':
+                x_act_func = self.tanh(x_fc1)
+            elif self.act_func == 'softsign':
+                x_act_func = self.softsign(x_fc1)
+            elif self.act_func == 'relu':
+                x_act_func = self.relu(x_fc1)
+            elif self.act_func == 'softplus':
+                x_act_func = self.softplus(x_fc1)
+            elif self.act_func == 'leakyrelu':
+                x_act_func = self.leakyrelu(x_fc1)
+            elif self.act_func == 'prelu':
+                x_act_func = self.prelu(x_fc1)
+            elif self.act_func == 'elu':
+                x_act_func = self.elu(x_fc1)
+            elif self.act_func == 'selu':
+                x_act_func = self.selu(x_fc1)
+            x_fc2 = self.fc2(x_act_func).permute(0, 3, 1, 2)
             x_out = x_fc2
         return x_out
