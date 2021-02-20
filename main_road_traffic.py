@@ -41,8 +41,6 @@ def get_parameters():
                         help='enable CUDA, default as True')
     parser.add_argument('--n_pred', type=int, default=3, 
                         help='the number of time interval for predcition, default as 3')
-    parser.add_argument('--batch_size', type=int, default=32,
-                        help='batch size, defualt as 32')
     parser.add_argument('--epochs', type=int, default=500,
                         help='epochs, default as 500')
     parser.add_argument('--dataset_config_path', type=str, default='./config/data/train/road_traffic/pemsd7-m.ini',
@@ -91,6 +89,7 @@ def get_parameters():
         raise ValueError(f'ERROR: "{Kt}" and "{stblock_num}" are unacceptable.')
     Ko = n_his - (Kt - 1) * 2 * stblock_num
     drop_rate = float(ConfigSectionMap('data')['drop_rate'])
+    batch_size = int(ConfigSectionMap('data')['batch_size'])
     learning_rate = float(ConfigSectionMap('data')['learning_rate'])
     weight_decay_rate = float(ConfigSectionMap('data')['weight_decay_rate'])
     step_size = int(ConfigSectionMap('data')['step_size'])
@@ -145,7 +144,6 @@ def get_parameters():
     else:
         n_vertex = n_vertex_vel
 
-    batch_size = args.batch_size
     opt = args.opt
     epochs = args.epochs
 
