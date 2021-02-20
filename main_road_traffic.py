@@ -45,7 +45,7 @@ def get_parameters():
                         help='batch size, defualt as 32')
     parser.add_argument('--epochs', type=int, default=500,
                         help='epochs, default as 500')
-    parser.add_argument('--dataset_config_path', type=str, default='./config/dataset/road_traffic/pemsd7-m.ini',
+    parser.add_argument('--dataset_config_path', type=str, default='./config/data/train/road_traffic/pemsd7-m.ini',
                         help='the path of dataset config file, pemsd7-m.ini for PeMSD7-M')
     parser.add_argument('--model_config_path', type=str, default='./config/model/chebconv_sym_glu.ini',
                         help='the path of model config file, chebconv_sym_glu.ini for STGCN(ChebConv, Ks=3, Kt=3), \
