@@ -56,7 +56,6 @@ class TemporalConvLayer(nn.Module):
         self.leakyrelu = nn.LeakyReLU()
         self.prelu = nn.PReLU()
         self.elu = nn.ELU()
-        self.selu = nn.SELU()
 
     def forward(self, x):   
         x_in = self.align(x)[:, :, self.Kt - 1:, :]
@@ -138,12 +137,6 @@ class TemporalConvLayer(nn.Module):
                 x_elu = self.elu(x_causal_conv + x_in)
                 x_tc_out = x_elu
 
-            # Temporal Convolution Layer (SELU)
-            elif self.act_func == "selu":
-                x_selu = self.selu(x_causal_conv + x_in)
-                x_tc_out = x_selu
-
-
             else:
                 raise ValueError(f'ERROR: activation function "{self.act_func}" is not defined.')
         
@@ -170,9 +163,9 @@ class ChebConv(nn.Module):
         if self.spat_conv_act_func == 'sigmoid' or self.spat_conv_act_func == 'tanh' or self.spat_conv_act_func == 'softsign':
             init.xavier_uniform_(self.weight)
 
-        # For ReLU, Softplus, Leaky ReLU, PReLU, ELU, or SELU
+        # For ReLU, Softplus, Leaky ReLU, PReLU, or ELU
         elif self.spat_conv_act_func == 'relu' or self.spat_conv_act_func == 'softplus' or self.spat_conv_act_func == 'leakyrelu' \
-            or self.spat_conv_act_func == 'prelu' or self.spat_conv_act_func == 'elu' or self.spat_conv_act_func == 'selu':
+            or self.spat_conv_act_func == 'prelu' or self.spat_conv_act_func == 'elu':
             init.kaiming_uniform_(self.weight)
 
         if self.bias is not None:
@@ -214,9 +207,9 @@ class GCNConv(nn.Module):
         if self.spat_conv_act_func == 'sigmoid' or self.spat_conv_act_func == 'tanh' or self.spat_conv_act_func == 'softsign':
             init.xavier_uniform_(self.weight)
 
-        # For ReLU, Softplus, Leaky ReLU, PReLU, ELU, or SELU
+        # For ReLU, Softplus, Leaky ReLU, PReLU, or ELU
         elif self.spat_conv_act_func == 'relu' or self.spat_conv_act_func == 'softplus' or self.spat_conv_act_func == 'leakyrelu' \
-            or self.spat_conv_act_func == 'prelu' or self.spat_conv_act_func == 'elu' or self.spat_conv_act_func == 'selu':
+            or self.spat_conv_act_func == 'prelu' or self.spat_conv_act_func == 'elu':
             init.kaiming_uniform_(self.weight)
 
         if self.bias is not None:
@@ -297,7 +290,6 @@ class STConvBlock(nn.Module):
         self.leakyrelu = nn.LeakyReLU()
         self.prelu = nn.PReLU()
         self.elu = nn.ELU()
-        self.selu = nn.SELU()
         self.do = nn.Dropout(p=self.drop_rate)
 
     def forward(self, x):
@@ -319,8 +311,6 @@ class STConvBlock(nn.Module):
             x_act_func = self.prelu(x_spat_conv)
         elif self.spat_conv_act_func == 'elu':
             x_act_func = self.elu(x_spat_conv)
-        elif self.spat_conv_act_func == 'selu':
-            x_act_func = self.selu(x_spat_conv)
         x_tmp_conv2 = self.tmp_conv2(x_act_func)
         x_tc2_ln = self.tc2_ln(x_tmp_conv2.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
         x_do = self.do(x_tc2_ln)
@@ -357,7 +347,6 @@ class OutputBlock(nn.Module):
         self.leakyrelu = nn.LeakyReLU()
         self.prelu = nn.PReLU()
         self.elu = nn.ELU()
-        self.selu = nn.SELU()
         self.do = nn.Dropout(p=self.drop_rate)
 
     def forward(self, x):
@@ -380,8 +369,6 @@ class OutputBlock(nn.Module):
             x_act_func = self.prelu(x_fc1)
         elif self.act_func == 'elu':
             x_act_func = self.elu(x_fc1)
-        elif self.act_func == 'selu':
-            x_act_func = self.selu(x_fc1)
         x_fc2 = self.fc2(x_act_func).permute(0, 3, 1, 2)
         x_out = x_fc2
         return x_out

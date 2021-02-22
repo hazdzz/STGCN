@@ -49,7 +49,6 @@ class STGCN_ChebConv(nn.Module):
             self.leakyrelu = nn.LeakyReLU()
             self.prelu = nn.PReLU()
             self.elu = nn.ELU()
-            self.selu = nn.SELU()
             self.do = nn.Dropout(p=self.drop_rate)
 
     def forward(self, x):
@@ -74,8 +73,6 @@ class STGCN_ChebConv(nn.Module):
                 x_act_func = self.prelu(x_fc1)
             elif self.act_func == 'elu':
                 x_act_func = self.elu(x_fc1)
-            elif self.act_func == 'selu':
-                x_act_func = self.selu(x_fc1)
             x_fc2 = self.fc2(x_act_func).permute(0, 3, 1, 2)
             x_out = x_fc2
         return x_out
@@ -124,7 +121,6 @@ class STGCN_GCNConv(nn.Module):
             self.leakyrelu = nn.LeakyReLU()
             self.prelu = nn.PReLU()
             self.elu = nn.ELU()
-            self.selu = nn.SELU()
             self.do = nn.Dropout(p=self.drop_rate)
 
     def forward(self, x):
@@ -149,8 +145,6 @@ class STGCN_GCNConv(nn.Module):
                 x_act_func = self.prelu(x_fc1)
             elif self.act_func == 'elu':
                 x_act_func = self.elu(x_fc1)
-            elif self.act_func == 'selu':
-                x_act_func = self.selu(x_fc1)
             x_fc2 = self.fc2(x_act_func).permute(0, 3, 1, 2)
             x_out = x_fc2
         return x_out
