@@ -143,14 +143,14 @@ class TemporalConvLayer(nn.Module):
         return x_tc_out
 
 class ChebConv(nn.Module):
-    def __init__(self, c_in, c_out, Ks, chebconv_matrix_list, enable_bias, spat_conv_act_func):
+    def __init__(self, c_in, c_out, Ks, chebconv_matrix_list, enable_bias, graph_conv_act_func):
         super(ChebConv, self).__init__()
         self.c_in = c_in
         self.c_out = c_out
         self.Ks = Ks
         self.chebconv_matrix_list = chebconv_matrix_list
         self.enable_bias = enable_bias
-        self.spat_conv_act_func = spat_conv_act_func
+        self.graph_conv_act_func = graph_conv_act_func
         self.weight = nn.Parameter(torch.FloatTensor(Ks, c_in, c_out))
         if self.enable_bias == True:
             self.bias = nn.Parameter(torch.FloatTensor(c_out))
@@ -160,12 +160,12 @@ class ChebConv(nn.Module):
 
     def initialize_parameters(self):
         # For Sigmoid, Tanh or Softsign
-        if self.spat_conv_act_func == 'sigmoid' or self.spat_conv_act_func == 'tanh' or self.spat_conv_act_func == 'softsign':
+        if self.graph_conv_act_func == 'sigmoid' or self.graph_conv_act_func == 'tanh' or self.graph_conv_act_func == 'softsign':
             init.xavier_uniform_(self.weight)
 
         # For ReLU, Softplus, Leaky ReLU, PReLU, or ELU
-        elif self.spat_conv_act_func == 'relu' or self.spat_conv_act_func == 'softplus' or self.spat_conv_act_func == 'leakyrelu' \
-            or self.spat_conv_act_func == 'prelu' or self.spat_conv_act_func == 'elu':
+        elif self.graph_conv_act_func == 'relu' or self.graph_conv_act_func == 'softplus' or self.graph_conv_act_func == 'leakyrelu' \
+            or self.graph_conv_act_func == 'prelu' or self.graph_conv_act_func == 'elu':
             init.kaiming_uniform_(self.weight)
 
         if self.bias is not None:
@@ -188,13 +188,13 @@ class ChebConv(nn.Module):
         return x_chebconv
 
 class GCNConv(nn.Module):
-    def __init__(self, c_in, c_out, gcnconv_matrix, enable_bias, spat_conv_act_func):
+    def __init__(self, c_in, c_out, gcnconv_matrix, enable_bias, graph_conv_act_func):
         super(GCNConv, self).__init__()
         self.c_in = c_in
         self.c_out = c_out
         self.gcnconv_matrix = gcnconv_matrix
         self.enable_bias = enable_bias
-        self.spat_conv_act_func = spat_conv_act_func
+        self.graph_conv_act_func = graph_conv_act_func
         self.weight = nn.Parameter(torch.FloatTensor(c_in, c_out))
         if enable_bias == True:
             self.bias = nn.Parameter(torch.FloatTensor(c_out))
@@ -204,12 +204,12 @@ class GCNConv(nn.Module):
 
     def initialize_parameters(self):
         # For Sigmoid, Tanh or Softsign
-        if self.spat_conv_act_func == 'sigmoid' or self.spat_conv_act_func == 'tanh' or self.spat_conv_act_func == 'softsign':
+        if self.graph_conv_act_func == 'sigmoid' or self.graph_conv_act_func == 'tanh' or self.graph_conv_act_func == 'softsign':
             init.xavier_uniform_(self.weight)
 
         # For ReLU, Softplus, Leaky ReLU, PReLU, or ELU
-        elif self.spat_conv_act_func == 'relu' or self.spat_conv_act_func == 'softplus' or self.spat_conv_act_func == 'leakyrelu' \
-            or self.spat_conv_act_func == 'prelu' or self.spat_conv_act_func == 'elu':
+        elif self.graph_conv_act_func == 'relu' or self.graph_conv_act_func == 'softplus' or self.graph_conv_act_func == 'leakyrelu' \
+            or self.graph_conv_act_func == 'prelu' or self.graph_conv_act_func == 'elu':
             init.kaiming_uniform_(self.weight)
 
         if self.bias is not None:
@@ -232,7 +232,7 @@ class GCNConv(nn.Module):
         return x_gcnconv_out
 
 class GraphConvLayer(nn.Module):
-    def __init__(self, Ks, c_in, c_out, graph_conv_type, graph_conv_matrix, spat_conv_act_func):
+    def __init__(self, Ks, c_in, c_out, graph_conv_type, graph_conv_matrix, graph_conv_act_func):
         super(GraphConvLayer, self).__init__()
         self.Ks = Ks
         self.c_in = c_in
@@ -240,12 +240,12 @@ class GraphConvLayer(nn.Module):
         self.align = Align(self.c_in, self.c_out)
         self.graph_conv_type = graph_conv_type
         self.graph_conv_matrix = graph_conv_matrix
-        self.spat_conv_act_func = spat_conv_act_func
+        self.graph_conv_act_func = graph_conv_act_func
         self.enable_bias = True
         if self.graph_conv_type == "chebconv":
-            self.chebconv = ChebConv(self.c_out, self.c_out, self.Ks, self.graph_conv_matrix, self.enable_bias, self.spat_conv_act_func)
+            self.chebconv = ChebConv(self.c_out, self.c_out, self.Ks, self.graph_conv_matrix, self.enable_bias, self.graph_conv_act_func)
         elif self.graph_conv_type == "gcnconv":
-            self.gcnconv = GCNConv(self.c_out, self.c_out, self.graph_conv_matrix, self.enable_bias, self.spat_conv_act_func)
+            self.gcnconv = GCNConv(self.c_out, self.c_out, self.graph_conv_matrix, self.enable_bias, self.graph_conv_act_func)
 
     def forward(self, x):
         x_gc_in = self.align(x)
@@ -277,10 +277,10 @@ class STConvBlock(nn.Module):
         self.enable_gated_act_func = True
         self.graph_conv_type = graph_conv_type
         self.graph_conv_matrix = graph_conv_matrix
-        self.spat_conv_act_func = 'relu'
+        self.graph_conv_act_func = 'relu'
         self.drop_rate = drop_rate
         self.tmp_conv1 = TemporalConvLayer(self.Kt, self.last_block_channel, self.channels[0], self.n_vertex, self.gated_act_func, self.enable_gated_act_func)
-        self.spat_conv = GraphConvLayer(self.Ks, self.channels[0], self.channels[1], self.graph_conv_type, self.graph_conv_matrix, self.spat_conv_act_func)
+        self.graph_conv = GraphConvLayer(self.Ks, self.channels[0], self.channels[1], self.graph_conv_type, self.graph_conv_matrix, self.graph_conv_act_func)
         self.tmp_conv2 = TemporalConvLayer(self.Kt, self.channels[1], self.channels[2], self.n_vertex, self.gated_act_func, self.enable_gated_act_func)
         self.tc2_ln = nn.LayerNorm([self.n_vertex, self.channels[2]])
         self.sigmoid = nn.Sigmoid()
@@ -294,23 +294,23 @@ class STConvBlock(nn.Module):
 
     def forward(self, x):
         x_tmp_conv1 = self.tmp_conv1(x)
-        x_spat_conv = self.spat_conv(x_tmp_conv1)
-        if self.spat_conv_act_func == 'sigmoid':
-            x_act_func = self.sigmoid(x_spat_conv)
-        elif self.spat_conv_act_func == 'tanh':
-            x_act_func = self.tanh(x_spat_conv)
-        elif self.spat_conv_act_func == 'softsign':
-            x_act_func = self.softsign(x_spat_conv)
-        elif self.spat_conv_act_func == 'relu':
-            x_act_func = self.relu(x_spat_conv)
-        elif self.spat_conv_act_func == 'softplus':
-            x_act_func = self.softplus(x_spat_conv)
-        elif self.spat_conv_act_func == 'leakyrelu':
-            x_act_func = self.leakyrelu(x_spat_conv)
-        elif self.spat_conv_act_func == 'prelu':
-            x_act_func = self.prelu(x_spat_conv)
-        elif self.spat_conv_act_func == 'elu':
-            x_act_func = self.elu(x_spat_conv)
+        x_graph_conv = self.graph_conv(x_tmp_conv1)
+        if self.graph_conv_act_func == 'sigmoid':
+            x_act_func = self.sigmoid(x_graph_conv)
+        elif self.graph_conv_act_func == 'tanh':
+            x_act_func = self.tanh(x_graph_conv)
+        elif self.graph_conv_act_func == 'softsign':
+            x_act_func = self.softsign(x_graph_conv)
+        elif self.graph_conv_act_func == 'relu':
+            x_act_func = self.relu(x_graph_conv)
+        elif self.graph_conv_act_func == 'softplus':
+            x_act_func = self.softplus(x_graph_conv)
+        elif self.graph_conv_act_func == 'leakyrelu':
+            x_act_func = self.leakyrelu(x_graph_conv)
+        elif self.graph_conv_act_func == 'prelu':
+            x_act_func = self.prelu(x_graph_conv)
+        elif self.graph_conv_act_func == 'elu':
+            x_act_func = self.elu(x_graph_conv)
         x_tmp_conv2 = self.tmp_conv2(x_act_func)
         x_tc2_ln = self.tc2_ln(x_tmp_conv2.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
         x_do = self.do(x_tc2_ln)
