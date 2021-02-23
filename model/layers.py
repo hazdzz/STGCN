@@ -251,10 +251,10 @@ class GraphConvLayer(nn.Module):
         x_gc_in = self.align(x)
         batch_size, c_in, T, n_vertex = x_gc_in.shape
         if self.graph_conv_type == "chebconv":
-            x_gc_out = self.chebconv(x_gc_in)
+            x_gc = self.chebconv(x_gc_in)
         elif self.graph_conv_type == "gcnconv":
-            x_gc_out = self.gcnconv(x_gc_in)
-        x_gc_with_rc = x_gc_out.reshape(batch_size, self.c_out, T, n_vertex).contiguous() + x_gc_in.contiguous()
+            x_gc = self.gcnconv(x_gc_in)
+        x_gc_with_rc = x_gc.reshape(batch_size, self.c_out, T, n_vertex).contiguous() + x_gc_in.contiguous()
         x_gc_out = x_gc_with_rc
         return x_gc_out
 
