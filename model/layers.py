@@ -176,8 +176,7 @@ class ChebConv(nn.Module):
     def forward(self, x):
         batch_size, c_in, T, n_vertex = x.shape
 
-        x_before_first_mul = x.reshape(-1, c_in)
-        x_first_mul = torch.mm(x_before_first_mul, self.weight.reshape(c_in, -1)).reshape(n_vertex * self.Ks, -1)
+        x_first_mul = torch.mm(x.reshape(-1, c_in), self.weight.reshape(c_in, -1)).reshape(n_vertex * self.Ks, -1)
         x_second_mul = torch.mm(self.chebconv_matrix_list, x_first_mul).reshape(-1, self.c_out)
 
         if self.bias is not None:
@@ -220,8 +219,7 @@ class GCNConv(nn.Module):
     def forward(self, x):
         batch_size, c_in, T, n_vertex = x.shape
 
-        x_before_first_mul = x.reshape(-1, c_in)
-        x_first_mul = torch.mm(x_before_first_mul, self.weight).reshape(n_vertex, -1)
+        x_first_mul = torch.mm(x.reshape(-1, c_in), self.weight).reshape(n_vertex, -1)
         x_second_mul = torch.spmm(self.gcnconv_matrix, x_first_mul).reshape(-1, self.c_out)
 
         if self.bias is not None:

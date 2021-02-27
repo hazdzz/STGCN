@@ -121,16 +121,18 @@ def evaluate_model(model, loss, data_iter):
 def evaluate_metric(model, data_iter, scaler):
     model.eval()
     with torch.no_grad():
-        mae, mape, mse = [], [], []
+        mae, sum_y, mape, mse = [], [], [], []
         for x, y in data_iter:
             y = scaler.inverse_transform(y.cpu().numpy()).reshape(-1)
             y_pred = scaler.inverse_transform(model(x).view(len(x), -1).cpu().numpy()).reshape(-1)
             d = np.abs(y - y_pred)
             mae += d.tolist()
+            sum_y += y.tolist()
             mape += (d / y).tolist()
             mse += (d ** 2).tolist()
         MAE = np.array(mae).mean()
-        MAPE = np.array(mape).mean()
+        #MAPE = np.array(mape).mean()
         RMSE = np.sqrt(np.array(mse).mean())
+        WMAPE = np.sum(np.array(mae)) / np.sum(np.array(sum_y))
 
-        return MAE, MAPE, RMSE
+        return MAE, RMSE, WMAPE

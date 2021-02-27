@@ -43,8 +43,9 @@ def get_parameters():
                         help='the number of time interval for predcition, default as 3')
     parser.add_argument('--epochs', type=int, default=500,
                         help='epochs, default as 500')
-    parser.add_argument('--dataset_config_path', type=str, default='./config/data/train/road_traffic/pemsd7-m.ini',
-                        help='the path of dataset config file, pemsd7-m.ini for PeMSD7-M')
+    parser.add_argument('--dataset_config_path', type=str, default='./config/data/train/road_traffic/pems-bay.ini',
+                        help='the path of dataset config file, pemsd7-m.ini for PeMSD7-M, \
+                            metr-la.ini for METR-LA, and pems-bay.ini for PEMS-BAY')
     parser.add_argument('--model_config_path', type=str, default='./config/model/chebconv_sym_glu.ini',
                         help='the path of model config file, chebconv_sym_glu.ini for STGCN(ChebConv, Ks=3, Kt=3), \
                             and gcnconv_sym_glu.ini for STGCN(GCNConv, Kt=3)')
@@ -168,8 +169,8 @@ def get_parameters():
 def data_preparate(data_path, device, n_his, n_pred, day_slot, batch_size):
     data_col = pd.read_csv(data_path, header=None).shape[0]
     # recommended dataset split rate as train: val: test = 60: 20: 20, 70: 15: 15 or 80: 10: 10
-    # using dataset split rate as train: val: test = 80: 10: 10
-    val_and_test_rate = 0.1
+    # using dataset split rate as train: val: test = 70: 15: 15
+    val_and_test_rate = 0.15
 
     len_val = int(math.floor(data_col * val_and_test_rate))
     len_test = int(math.floor(data_col * val_and_test_rate))
@@ -269,8 +270,8 @@ def test(zscore, loss, model, test_iter):
     best_model.load_state_dict(torch.load(model_save_path))
     test_MSE = utility.evaluate_model(best_model, loss, test_iter)
     print('Test loss {:.6f}'.format(test_MSE))
-    test_MAE, test_MAPE, test_RMSE = utility.evaluate_metric(best_model, test_iter, zscore)
-    print('MAE {:.6f} | MAPE {:.8f} | RMSE {:.6f}'.format(test_MAE, test_MAPE, test_RMSE))
+    test_MAE, test_RMSE, test_WMAPE = utility.evaluate_metric(best_model, test_iter, zscore)
+    print('MAE {:.6f} | RMSE {:.6f} | WMAPE {:.8f}'.format(test_MAE, test_RMSE, test_WMAPE))
 
 if __name__ == "__main__":
     # For stable experiment results
