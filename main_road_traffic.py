@@ -81,7 +81,6 @@ def get_parameters():
     config.read(dataset_config_path, encoding="utf-8")
 
     dataset = ConfigSectionMap('data')['dataset']
-    n_vertex = int(ConfigSectionMap('data')['n_vertex'])
     time_intvl = int(ConfigSectionMap('data')['time_intvl'])
     n_his = int(ConfigSectionMap('data')['n_his'])
     Kt = int(ConfigSectionMap('data')['kt'])
