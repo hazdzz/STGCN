@@ -269,6 +269,8 @@ def test(zscore, loss, model, test_iter):
     best_model.load_state_dict(torch.load(model_save_path))
     test_MSE = utility.evaluate_model(best_model, loss, test_iter)
     print('Test loss {:.6f}'.format(test_MSE))
+    #test_MAE, test_MAPE, test_RMSE = utility.evaluate_metric(best_model, test_iter, zscore)
+    #print('MAE {:.6f} | MAPE {:.8f} | RMSE {:.6f}'.format(test_MAE, test_MAPE, test_RMSE))
     test_MAE, test_RMSE, test_WMAPE = utility.evaluate_metric(best_model, test_iter, zscore)
     print('MAE {:.6f} | RMSE {:.6f} | WMAPE {:.8f}'.format(test_MAE, test_RMSE, test_WMAPE))
 
