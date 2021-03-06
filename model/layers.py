@@ -46,6 +46,7 @@ class CausalConv2d(nn.Conv2d):
             self.__padding = 0
         self.left_padding = nn.modules.utils._pair(self.__padding)
         super(CausalConv2d, self).__init__(in_channels, out_channels, kernel_size, stride=stride, padding=0, dilation=dilation, groups=groups, bias=bias)
+        
     def forward(self, input):
         if self.__padding != 0:
             input = F.pad(input, (self.left_padding[1], 0, self.left_padding[0], 0))
