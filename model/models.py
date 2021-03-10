@@ -27,11 +27,11 @@ class STGCN_ChebConv(nn.Module):
     # F: Fully-Connected Layer
     # F: Fully-Connected Layer
 
-    def __init__(self, Kt, Ks, blocks, T, n_vertex, gated_act_func, graph_conv_type, chebconv_matrix_list, drop_rate):
+    def __init__(self, Kt, Ks, blocks, T, n_vertex, gated_act_func, graph_conv_type, chebconv_matrix, drop_rate):
         super(STGCN_ChebConv, self).__init__()
         modules = []
         for l in range(len(blocks) - 3):
-            modules.append(layers.STConvBlock(Kt, Ks, n_vertex, blocks[l][-1], blocks[l+1], gated_act_func, graph_conv_type, chebconv_matrix_list, drop_rate))
+            modules.append(layers.STConvBlock(Kt, Ks, n_vertex, blocks[l][-1], blocks[l+1], gated_act_func, graph_conv_type, chebconv_matrix, drop_rate))
         self.st_blocks = nn.Sequential(*modules)
         Ko = T - (len(blocks) - 3) * 2 * (Kt - 1)
         self.Ko = Ko

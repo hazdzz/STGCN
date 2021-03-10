@@ -149,9 +149,8 @@ def get_parameters():
 
     if graph_conv_type == "chebconv":
         mat = utility.calculate_laplacian_matrix(adj_mat, mat_type)
-        graph_conv_matrix_list = utility.calculate_chebconv_graph_matrix_list(mat, Ks)
-        chebconv_matrix_list = torch.from_numpy(graph_conv_matrix_list).float().to(device)
-        stgcn_chebconv = models.STGCN_ChebConv(Kt, Ks, blocks, n_his, n_vertex, gated_act_func, graph_conv_type, chebconv_matrix_list, drop_rate).to(device)
+        chebconv_matrix = torch.from_numpy(mat).float().to(device)
+        stgcn_chebconv = models.STGCN_ChebConv(Kt, Ks, blocks, n_his, n_vertex, gated_act_func, graph_conv_type, chebconv_matrix, drop_rate).to(device)
         model = stgcn_chebconv
         if (mat_type != "wid_sym_normd_lap_mat") and (mat_type != "wid_rw_normd_lap_mat"):
             raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')

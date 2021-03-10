@@ -72,39 +72,6 @@ def calculate_laplacian_matrix(adj_mat, mat_type):
     else:
         raise ValueError(f'ERROR: "{mat_type}" is unknown.')
 
-def calculate_chebconv_graph_matrix_list(lap_mat, Ks):
-    # The Chebyshev polynomials are recursively defined as 
-    # T_k(x) = 2 * x * T_{k - 1}(x) - T_{k - 2}(x)
-    # T_0(x) = 1
-    # T_1(x) = x
-
-    n_vertex = lap_mat.shape[0]
-    id_mat = np.identity(n_vertex)
-
-    # K_cp is the order of Chebyshev polynomials
-    # K_cp + 1 = Ks
-    # Because K_cp starts from 0, and Ks starts from 1 
-    K_cp = Ks - 1
-
-    if K_cp == 0:
-        # T_0(x) = 1
-        return id_mat
-    elif K_cp == 1:
-        # T_1(x) = x
-        chebyshev_polynomials_laplacian_matrix_list = [id_mat]
-        chebyshev_polynomials_laplacian_matrix_list.append(lap_mat)
-        return np.concatenate(chebyshev_polynomials_laplacian_matrix_list, axis=-1)
-    elif K_cp >= 2:
-        chebyshev_polynomials_laplacian_matrix_list = [id_mat, lap_mat]
-
-        # T_k(x) = 2 * x * T_{k - 1}(x) - T_{k - 2}(x)
-        for k in range(2, Ks):
-            chebyshev_polynomials_laplacian_matrix_list.append(2 * lap_mat * chebyshev_polynomials_laplacian_matrix_list[k - 1] - chebyshev_polynomials_laplacian_matrix_list[k - 2])
-
-        return np.concatenate(chebyshev_polynomials_laplacian_matrix_list, axis=-1)
-    else:
-        raise ValueError(f'ERROR: the graph convolution kernel size Ks must be greater than 0, but received "{Ks}".')
-
 def evaluate_model(model, loss, data_iter):
     model.eval()
     l_sum, n = 0.0, 0

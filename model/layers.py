@@ -175,17 +175,17 @@ class TemporalConvLayer(nn.Module):
         return x_tc_out
 
 class ChebConv(nn.Module):
-    def __init__(self, c_in, c_out, Ks, chebconv_matrix_list, enable_bias, graph_conv_act_func):
+    def __init__(self, c_in, c_out, Ks, chebconv_matrix, enable_bias, graph_conv_act_func):
         super(ChebConv, self).__init__()
         self.c_in = c_in
         self.c_out = c_out
         self.Ks = Ks
-        self.chebconv_matrix_list = chebconv_matrix_list
+        self.chebconv_matrix = chebconv_matrix
         self.enable_bias = enable_bias
         self.graph_conv_act_func = graph_conv_act_func
-        self.weight = nn.Parameter(torch.FloatTensor(Ks, c_in, c_out))
+        self.weight = nn.Parameter(torch.FloatTensor(self.Ks, self.c_in, self.c_out))
         if self.enable_bias == True:
-            self.bias = nn.Parameter(torch.FloatTensor(c_out))
+            self.bias = nn.Parameter(torch.FloatTensor(self.c_out))
         else:
             self.register_parameter('bias', None)
         self.initialize_parameters()
@@ -208,13 +208,28 @@ class ChebConv(nn.Module):
     def forward(self, x):
         batch_size, c_in, T, n_vertex = x.shape
 
-        x_first_mul = torch.mm(x.reshape(-1, c_in), self.weight.reshape(c_in, -1)).reshape(n_vertex * self.Ks, -1)
-        x_second_mul = torch.mm(self.chebconv_matrix_list, x_first_mul).reshape(-1, self.c_out)
+        # Using recurrence relation to reduce time complexity from O(n^2) to O(K * |E|),
+        # where K = Ks - 1
+        x = x.reshape(n_vertex, -1)
+        x_0 = x
+        x_1 = torch.mm(self.chebconv_matrix, x)
+        if self.Ks - 1 == 0:
+            x_list = [x_0]
+        elif self.Ks - 1 == 1:
+            x_list = [x_0]
+            x_list.append(x_1)
+        else:
+            x_list = [x_0, x_1]
+            for k in range(2, self.Ks):
+                x_list.append(torch.mm(2 * self.chebconv_matrix, x_list[k - 1]) - x_list[k - 2])
+        x_tensor = torch.stack(x_list, dim=0)
+
+        x_mul = torch.mm(x_tensor.reshape(-1, self.Ks * c_in), self.weight.reshape(self.Ks * c_in, -1)).reshape(-1, self.c_out)
 
         if self.bias is not None:
-            x_chebconv = x_second_mul + self.bias
+            x_chebconv = x_mul + self.bias
         else:
-            x_chebconv = x_second_mul
+            x_chebconv = x_mul
         
         return x_chebconv
 
@@ -226,9 +241,9 @@ class GCNConv(nn.Module):
         self.gcnconv_matrix = gcnconv_matrix
         self.enable_bias = enable_bias
         self.graph_conv_act_func = graph_conv_act_func
-        self.weight = nn.Parameter(torch.FloatTensor(c_in, c_out))
+        self.weight = nn.Parameter(torch.FloatTensor(self.c_in, self.c_out))
         if enable_bias == True:
-            self.bias = nn.Parameter(torch.FloatTensor(c_out))
+            self.bias = nn.Parameter(torch.FloatTensor(self.c_out))
         else:
             self.register_parameter('bias', None)
         self.initialize_parameters()
@@ -284,7 +299,7 @@ class GraphConvLayer(nn.Module):
             x_gc = self.chebconv(x_gc_in)
         elif self.graph_conv_type == "gcnconv":
             x_gc = self.gcnconv(x_gc_in)
-        x_gc_with_rc = x_gc.reshape(batch_size, self.c_out, T, n_vertex).contiguous() + x_gc_in.contiguous()
+        x_gc_with_rc = torch.add(x_gc.reshape(batch_size, self.c_out, T, n_vertex), x_gc_in)
         x_gc_out = x_gc_with_rc
         return x_gc_out
 
