@@ -216,8 +216,7 @@ class ChebConv(nn.Module):
         if self.Ks - 1 == 0:
             x_list = [x_0]
         elif self.Ks - 1 == 1:
-            x_list = [x_0]
-            x_list.append(x_1)
+            x_list = [x_0, x_1]
         else:
             x_list = [x_0, x_1]
             for k in range(2, self.Ks):
