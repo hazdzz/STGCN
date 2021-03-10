@@ -208,7 +208,7 @@ class ChebConv(nn.Module):
     def forward(self, x):
         batch_size, c_in, T, n_vertex = x.shape
 
-        # Using recurrence relation to reduce time complexity from O(n^2) to O(K * |E|),
+        # Using recurrence relation to reduce time complexity from O(n^2) to O(K|E|),
         # where K = Ks - 1
         x = x.reshape(n_vertex, -1)
         x_0 = x
