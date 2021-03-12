@@ -92,7 +92,7 @@ def calculate_rwr_adj_mat(lap_mat, alpha, epsilon):
 def calculate_ppr_adj_mat(lap_mat, alpha, epsilon):
     return calculate_rwr_adj_mat(lap_mat, alpha, epsilon)
 
-def calculate_hk_lap_mat(lap_mat, t, epsilon):
+def calculate_hk_adj_mat(lap_mat, t, epsilon):
     hk_adj_mat = np.exp((-t) * lap_mat)
     hk_adj_mat[hk_adj_mat < epsilon] = 0
 
