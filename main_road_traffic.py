@@ -160,7 +160,7 @@ def get_parameters():
         stgcn_gcnconv = models.STGCN_GCNConv(Kt, Ks, blocks, n_his, n_vertex, gated_act_func, graph_conv_type, gcnconv_matrix, drop_rate).to(device)
         model = stgcn_gcnconv
         if (mat_type != "hat_sym_normd_lap_mat") and (mat_type != "hat_rw_normd_lap_mat"):
-            raise ValueError(f'ERROR: {args.mat_type)} is wrong.')
+            raise ValueError(f'ERROR: {args.mat_type} is wrong.')
 
     return device, n_his, n_pred, day_slot, model_save_path, data_path, n_vertex, batch_size, drop_rate, opt, epochs, graph_conv_type, model, learning_rate, weight_decay_rate, step_size, gamma
 
@@ -237,7 +237,8 @@ def train(loss, epochs, optimizer, scheduler, early_stopping, model, model_save_
         if val_loss < min_val_loss:
             min_val_loss = val_loss
             #torch.save(model.state_dict(), model_save_path)
-        print(f'Epoch: {epoch:03d} | Lr: {optimizer.param_groups[0]['lr']:.20f} |Train loss: {l_sum / n:.6f} | Val loss: {val_loss:.6f} | GPU occupy: {gpu_mem_alloc:.6f} MiB')
+        print('Epoch: {:03d} | Lr: {:.20f} |Train loss: {:.6f} | Val loss: {:.6f} | GPU occupy: {:.6f} MiB'.\
+            format(epoch, optimizer.param_groups[0]['lr'], l_sum / n, val_loss, gpu_mem_alloc))
 
         # clear lists to track next epoch
         valid_losses = []
