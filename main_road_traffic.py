@@ -148,19 +148,20 @@ def get_parameters():
     epochs = args.epochs
 
     if graph_conv_type == "chebconv":
+        if (mat_type != "wid_sym_normd_lap_mat") and (mat_type != "wid_rw_normd_lap_mat"):
+            raise ValueError(f'ERROR: {args.mat_type} is wrong.')
         mat = utility.calculate_laplacian_matrix(adj_mat, mat_type)
         chebconv_matrix = torch.from_numpy(mat).float().to(device)
         stgcn_chebconv = models.STGCN_ChebConv(Kt, Ks, blocks, n_his, n_vertex, gated_act_func, graph_conv_type, chebconv_matrix, drop_rate).to(device)
         model = stgcn_chebconv
-        if (mat_type != "wid_sym_normd_lap_mat") and (mat_type != "wid_rw_normd_lap_mat"):
-            raise ValueError(f'ERROR: {args.mat_type} is wrong.')
+
     elif graph_conv_type == "gcnconv":
+        if (mat_type != "hat_sym_normd_lap_mat") and (mat_type != "hat_rw_normd_lap_mat"):
+            raise ValueError(f'ERROR: {args.mat_type} is wrong.')
         mat = utility.calculate_laplacian_matrix(adj_mat, mat_type)
         gcnconv_matrix = torch.from_numpy(mat).float().to(device)
         stgcn_gcnconv = models.STGCN_GCNConv(Kt, Ks, blocks, n_his, n_vertex, gated_act_func, graph_conv_type, gcnconv_matrix, drop_rate).to(device)
         model = stgcn_gcnconv
-        if (mat_type != "hat_sym_normd_lap_mat") and (mat_type != "hat_rw_normd_lap_mat"):
-            raise ValueError(f'ERROR: {args.mat_type} is wrong.')
 
     return device, n_his, n_pred, day_slot, model_save_path, data_path, n_vertex, batch_size, drop_rate, opt, epochs, graph_conv_type, model, learning_rate, weight_decay_rate, step_size, gamma
 
