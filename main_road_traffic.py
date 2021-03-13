@@ -86,7 +86,7 @@ def get_parameters():
     Kt = int(ConfigSectionMap('data')['kt'])
     stblock_num = int(ConfigSectionMap('data')['stblock_num'])
     if ((Kt - 1) * 2 * stblock_num > n_his) or ((Kt - 1) * 2 * stblock_num <= 0):
-        raise ValueError(f'ERROR: "{Kt}" and "{stblock_num}" are unacceptable.')
+        raise ValueError(f'ERROR: {Kt} and {stblock_num} are unacceptable.')
     Ko = n_his - (Kt - 1) * 2 * stblock_num
     drop_rate = float(ConfigSectionMap('data')['drop_rate'])
     batch_size = int(ConfigSectionMap('data')['batch_size'])
@@ -104,7 +104,7 @@ def get_parameters():
     
     graph_conv_type = ConfigSectionMap('graphconv')['graph_conv_type']
     if (graph_conv_type != "chebconv") and (graph_conv_type != "gcnconv"):
-        raise NotImplementedError(f'ERROR: "{graph_conv_type}" is not implemented.')
+        raise NotImplementedError(f'ERROR: {graph_conv_type} is not implemented.')
     else:
         graph_conv_type = graph_conv_type
     
@@ -153,14 +153,14 @@ def get_parameters():
         stgcn_chebconv = models.STGCN_ChebConv(Kt, Ks, blocks, n_his, n_vertex, gated_act_func, graph_conv_type, chebconv_matrix, drop_rate).to(device)
         model = stgcn_chebconv
         if (mat_type != "wid_sym_normd_lap_mat") and (mat_type != "wid_rw_normd_lap_mat"):
-            raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')
+            raise ValueError(f'ERROR: {args.mat_type} is wrong.')
     elif graph_conv_type == "gcnconv":
         mat = utility.calculate_laplacian_matrix(adj_mat, mat_type)
         gcnconv_matrix = torch.from_numpy(mat).float().to(device)
         stgcn_gcnconv = models.STGCN_GCNConv(Kt, Ks, blocks, n_his, n_vertex, gated_act_func, graph_conv_type, gcnconv_matrix, drop_rate).to(device)
         model = stgcn_gcnconv
         if (mat_type != "hat_sym_normd_lap_mat") and (mat_type != "hat_rw_normd_lap_mat"):
-            raise ValueError(f'ERROR: "{args.mat_type}" is wrong.')
+            raise ValueError(f'ERROR: {args.mat_type)} is wrong.')
 
     return device, n_his, n_pred, day_slot, model_save_path, data_path, n_vertex, batch_size, drop_rate, opt, epochs, graph_conv_type, model, learning_rate, weight_decay_rate, step_size, gamma
 
@@ -208,7 +208,7 @@ def main(learning_rate, weight_decay_rate, graph_conv_type, model_save_path, mod
     elif opt == "AdamW":
         optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay_rate)
     else:
-        raise ValueError(f'ERROR: optimizer "{opt}" is undefined.')
+        raise ValueError(f'ERROR: optimizer {opt} is undefined.')
 
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 
@@ -237,8 +237,7 @@ def train(loss, epochs, optimizer, scheduler, early_stopping, model, model_save_
         if val_loss < min_val_loss:
             min_val_loss = val_loss
             #torch.save(model.state_dict(), model_save_path)
-        print('Epoch: {:03d} | Lr: {:.20f} |Train loss: {:.6f} | Val loss: {:.6f} | GPU occupy: {:.6f} MiB'.\
-            format(epoch, optimizer.param_groups[0]['lr'], l_sum / n, val_loss, gpu_mem_alloc))
+        print(f'Epoch: {epoch:03d} | Lr: {optimizer.param_groups[0]['lr']:.20f} |Train loss: {l_sum / n:.6f} | Val loss: {val_loss:.6f} | GPU occupy: {gpu_mem_alloc:.6f} MiB')
 
         # clear lists to track next epoch
         valid_losses = []
@@ -269,9 +268,9 @@ def test(zscore, loss, model, test_iter):
     test_MSE = utility.evaluate_model(best_model, loss, test_iter)
     print('Test loss {:.6f}'.format(test_MSE))
     #test_MAE, test_MAPE, test_RMSE = utility.evaluate_metric(best_model, test_iter, zscore)
-    #print('MAE {:.6f} | MAPE {:.8f} | RMSE {:.6f}'.format(test_MAE, test_MAPE, test_RMSE))
+    #print(f'MAE {test_MAE:.6f} | MAPE {test_MAPE:.8f} | RMSE {test_RMSE:.6f}')
     test_MAE, test_RMSE, test_WMAPE = utility.evaluate_metric(best_model, test_iter, zscore)
-    print('MAE {:.6f} | RMSE {:.6f} | WMAPE {:.8f}'.format(test_MAE, test_RMSE, test_WMAPE))
+    print(f'MAE {test_MAE:.6f} | RMSE {test.RMSE:.6f} | WMAPE {test_WMAPE:.8f}')
 
 if __name__ == "__main__":
     # For stable experiment results

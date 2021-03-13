@@ -79,7 +79,7 @@ def calculate_laplacian_matrix(adj_mat, mat_type, enable_trade_off_lambda, trade
     elif mat_type == 'lazy_rw_lap_mat':
         return lazy_rw_lap_mat
     else:
-        raise ValueError(f'ERROR: "{mat_type}" is unknown.')
+        raise ValueError(f'ERROR: {mat_type} is unknown.')
 
 def calculate_rwr_adj_mat(lap_mat, alpha, epsilon):
     n_vertex = lap_mat.shape[0]

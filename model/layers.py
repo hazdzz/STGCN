@@ -120,7 +120,7 @@ class TemporalConvLayer(nn.Module):
                 x_tc_out = x_gtu
 
             else:
-                raise ValueError(f'ERROR: activation function "{self.act_func}" is not defined.')
+                raise ValueError(f'ERROR: activation function {self.act_func} is not defined.')
 
         else:
 
@@ -170,7 +170,7 @@ class TemporalConvLayer(nn.Module):
                 x_tc_out = x_elu
 
             else:
-                raise ValueError(f'ERROR: activation function "{self.act_func}" is not defined.')
+                raise ValueError(f'ERROR: activation function {self.act_func} is not defined.')
         
         return x_tc_out
 
@@ -214,7 +214,7 @@ class ChebConv(nn.Module):
         x_0 = x
         x_1 = torch.mm(self.chebconv_matrix, x)
         if self.Ks - 1 < 0:
-            raise ValueError(f'ERROR: the graph convolution kernel size Ks must be greater than 0, but received {}.'.format(self.Ks))  
+            raise ValueError(f'ERROR: the graph convolution kernel size Ks must be greater than 0, but received {self.Ks}.')  
         elif self.Ks - 1 == 0:
             x_list = [x_0]
         elif self.Ks - 1 == 1:
