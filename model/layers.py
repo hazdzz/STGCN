@@ -213,11 +213,13 @@ class ChebConv(nn.Module):
         x = x.reshape(n_vertex, -1)
         x_0 = x
         x_1 = torch.mm(self.chebconv_matrix, x)
-        if self.Ks - 1 == 0:
+        if self.Ks - 1 < 0:
+            raise ValueError(f'ERROR: the graph convolution kernel size Ks must be greater than 0, but received {}.'.format(self.Ks))  
+        elif self.Ks - 1 == 0:
             x_list = [x_0]
         elif self.Ks - 1 == 1:
             x_list = [x_0, x_1]
-        else:
+        elif self.Ks - 1 >= 2:
             x_list = [x_0, x_1]
             for k in range(2, self.Ks):
                 x_list.append(torch.mm(2 * self.chebconv_matrix, x_list[k - 1]) - x_list[k - 2])
