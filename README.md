@@ -32,6 +32,12 @@ https://arxiv.org/abs/1709.04875
 4. Offer a different set of hyperparameters
 5. Offer config files for two different categories graph convolution
 
+## Requirements
+To install requirements:
+```console
+pip3 install -r requirements.txt
+```
+
 ## The result for road traffic prediction on dataset METR-LA (15/30/60 mins) (train: val: test = 70: 15: 15)
 ### 15 mins (H=3)
 | Model (paper) | Model (code) | Laplacian matrix type | Gated activation function | MAE | RMSE | WMAPE |
