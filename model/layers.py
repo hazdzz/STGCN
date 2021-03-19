@@ -268,7 +268,7 @@ class GCNConv(nn.Module):
         batch_size, c_in, T, n_vertex = x.shape
 
         x_first_mul = torch.mm(x.reshape(-1, c_in), self.weight).reshape(n_vertex, -1)
-        x_second_mul = torch.spmm(self.gcnconv_matrix, x_first_mul).reshape(-1, self.c_out)
+        x_second_mul = torch.mm(self.gcnconv_matrix, x_first_mul).reshape(-1, self.c_out)
 
         if self.bias is not None:
             x_gcnconv_out = x_second_mul + self.bias
