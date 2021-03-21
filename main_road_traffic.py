@@ -43,7 +43,7 @@ def get_parameters():
                         help='the number of time interval for predcition, default as 3')
     parser.add_argument('--epochs', type=int, default=500,
                         help='epochs, default as 500')
-    parser.add_argument('--dataset_config_path', type=str, default='./config/data/train/road_traffic/pems-bay.ini',
+    parser.add_argument('--dataset_config_path', type=str, default='./config/data/train/road_traffic/metr-la.ini',
                         help='the path of dataset config file, pemsd7-m.ini for PeMSD7-M, \
                             metr-la.ini for METR-LA, and pems-bay.ini for PEMS-BAY')
     parser.add_argument('--model_config_path', type=str, default='./config/model/chebconv_sym_glu.ini',
@@ -272,7 +272,7 @@ def test(zscore, loss, model, test_iter):
     #test_MAE, test_MAPE, test_RMSE = utility.evaluate_metric(best_model, test_iter, zscore)
     #print(f'MAE {test_MAE:.6f} | MAPE {test_MAPE:.8f} | RMSE {test_RMSE:.6f}')
     test_MAE, test_RMSE, test_WMAPE = utility.evaluate_metric(best_model, test_iter, zscore)
-    print(f'MAE {test_MAE:.6f} | RMSE {test.RMSE:.6f} | WMAPE {test_WMAPE:.8f}')
+    print(f'MAE {test_MAE:.6f} | RMSE {test_RMSE:.6f} | WMAPE {test_WMAPE:.8f}')
 
 if __name__ == "__main__":
     # For stable experiment results

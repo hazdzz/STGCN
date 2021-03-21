@@ -42,36 +42,36 @@ pip3 install -r requirements.txt
 ### 15 mins (H=3)
 | Model (paper) | Model (code) | Laplacian matrix type | Gated activation function | MAE | RMSE | WMAPE |
 | :----: | :----: | :----: | :----: | :----: | :----: | :----: |
-| STGCN (Cheb) | STGCN_ChebConv (Ks=3, Kt=3) | sym | GLU | 3.896181 | 8.180521 | 7.669819% |
+| STGCN (Cheb) | STGCN_ChebConv (Ks=3, Kt=3) | sym | GLU | 3.825249 | 7.949693 | 7.530186% |
 | STGCN (1<sup>st</sup>) | STGCN_GCNConv (Kt=3) | sym | GLU | 3.703660 | 7.685864 | 7.290832% |
 
 ### 30 mins (H=6)
 | Model (paper) | Model (code) | Laplacian matrix type | Gated activation function | MAE | RMSE | WMAPE |
 | :----: | :----: | :----: | :----: | :----: | :----: | :----: |
-| STGCN (Cheb) | STGCN_ChebConv (Ks=3, Kt=3) | sym | GLU | 5.415257 | 10.542593 | 10.661624% |
+| STGCN (Cheb) | STGCN_ChebConv (Ks=3, Kt=3) | sym | GLU | 4.789775 | 9.501917 | 9.430166% |
 | STGCN (1<sup>st</sup>) | STGCN_GCNConv (Kt=3) | sym | GLU | 4.518740 | 8.863177 | 8.896550% |
 
 ### 60 mins (H=12)
 | Model (paper) | Model (code) | Laplacian matrix type | Gated activation function | MAE | RMSE | WMAPE |
 | :----: | :----: | :----: | :----: | :----: | :----: | :----: |
-| STGCN (Cheb) | STGCN_ChebConv (Ks=3, Kt=3) | sym | GLU | 6.710720 | 12.415373 | 13.215713% |
+| STGCN (Cheb) | STGCN_ChebConv (Ks=3, Kt=3) | sym | GLU | 6.047641 | 11.888628 | 11.909882% |
 | STGCN (1<sup>st</sup>) | STGCN_GCNConv (Kt=3) | sym | GLU | 5.997484 | 11.498759 | 11.811108% |
 
 ## The result for road traffic prediction on dataset PEMS-BAY (15/30/60 mins) (train: val: test = 70: 15: 15)
 ### 15 mins (H=3)
 | Model (paper) | Model (code) | Laplacian matrix type | Gated activation function | MAE | RMSE | WMAPE |
 | :----: | :----: | :----: | :----: | :----: | :----: | :----: |
-| STGCN (Cheb) | STGCN_ChebConv (Ks=3, Kt=3) | sym | GLU | 1.515749 | 3.039355 | 2.439110% |
+| STGCN (Cheb) | STGCN_ChebConv (Ks=3, Kt=3) | sym | GLU | 1.504175 | 3.031081 | 2.420486% |
 | STGCN (1<sup>st</sup>) | STGCN_GCNConv (Kt=3) | sym | GLU | 1.472308 | 2.987471 | 2.369206% |
 
 ### 30 mins (H=6)
 | Model (paper) | Model (code) | Laplacian matrix type | Gated activation function | MAE | RMSE | WMAPE |
 | :----: | :----: | :----: | :----: | :----: | :----: | :----: |
-| STGCN (Cheb) | STGCN_ChebConv (Ks=3, Kt=3) | sym | GLU | 1.940019 | 4.057035 | 3.121926% |
+| STGCN (Cheb) | STGCN_ChebConv (Ks=3, Kt=3) | sym | GLU | 1.919455 | 3.964940 | 3.088833% |
 | STGCN (1<sup>st</sup>) | STGCN_GCNConv (Kt=3) | sym | GLU | 1.910708 | 3.948517 | 3.074757% |
 
 ### 60 mins (H=12)
 | Model (paper) | Model (code) | Laplacian matrix type | Gated activation function | MAE | RMSE | WMAPE |
 | :----: | :----: | :----: | :----: | :----: | :----: | :----: |
-| STGCN (Cheb) | STGCN_ChebConv (Ks=3, Kt=3) | sym | GLU | 2.316922 | 4.714354 | 3.728668% |
+| STGCN (Cheb) | STGCN_ChebConv (Ks=3, Kt=3) | sym | GLU | 2.308847 | 4.690512 | 3.715672% |
 | STGCN (1<sup>st</sup>) | STGCN_GCNConv (Kt=3) | sym | GLU | 2.306092 | 4.701984 | 3.711238% |
