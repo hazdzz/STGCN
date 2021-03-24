@@ -70,7 +70,7 @@ def calculate_laplacian_matrix(adj_mat, mat_type):
     elif mat_type == 'hat_rw_normd_lap_mat':
         return hat_rw_normd_lap_mat
     else:
-        raise ValueError(f'ERROR: "{mat_type}" is unknown.')
+        raise ValueError(f'ERROR: {mat_type} is unknown.')
 
 def evaluate_model(model, loss, data_iter):
     model.eval()
