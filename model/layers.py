@@ -214,7 +214,7 @@ class ChebConv(nn.Module):
         x_0 = x
         x_1 = torch.mm(self.chebconv_matrix, x)
         if self.Ks - 1 < 0:
-            raise ValueError(f'ERROR: the graph convolution kernel size Ks must be greater than 0, but received {self.Ks}.')  
+            raise ValueError(f'ERROR: the graph convolution kernel size Ks has to be a positive integer, but received {self.Ks}.')  
         elif self.Ks - 1 == 0:
             x_list = [x_0]
         elif self.Ks - 1 == 1:
