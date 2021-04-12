@@ -271,11 +271,11 @@ class GCNConv(nn.Module):
         x_second_mul = torch.mm(self.gcnconv_matrix, x_first_mul).reshape(-1, self.c_out)
 
         if self.bias is not None:
-            x_gcnconv_out = x_second_mul + self.bias
+            x_gcnconv = x_second_mul + self.bias
         else:
-            x_gcnconv_out = x_second_mul
+            x_gcnconv = x_second_mul
         
-        return x_gcnconv_out
+        return x_gcnconv
 
 class GraphConvLayer(nn.Module):
     def __init__(self, Ks, c_in, c_out, graph_conv_type, graph_conv_matrix, graph_conv_act_func):
