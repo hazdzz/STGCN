@@ -6,8 +6,8 @@ from model import layers
 class STGCN_ChebConv(nn.Module):
     # STGCN(ChebConv) contains 'TGTND TGTND TNFF' structure
     # ChebConv is the graph convolution from ChebyNet.
-    # Using the Chebyshev polynomials of the first kind as graph filter.
-    # It is a FIR filter, and it is an AR filter.
+    # Using the Chebyshev polynomials of the first kind as a graph filter.
+    # It is an Autoregressive(AR) filter in Finite Impulse Response(FIR) filters.
         
     # T: Gated Temporal Convolution Layer (GLU or GTU)
     # G: Graph Convolution Layer (ChebConv)
@@ -80,6 +80,7 @@ class STGCN_GCNConv(nn.Module):
     # STGCN(GCNConv) contains 'TGTND TGTND TNFF' structure
     # GCNConv is the graph convolution from GCN.
     # GCNConv is not the first-order ChebConv, because the renormalization trick is used.
+    # It is an Autoregressive(AR) filter in Finite Impulse Response(FIR) filters.
     # Be careful about over-smoothing.
         
     # T: Gated Temporal Convolution Layer (GLU or GTU)
