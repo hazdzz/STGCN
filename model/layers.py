@@ -106,7 +106,7 @@ class TemporalConvLayer(nn.Module):
                 # In original paper, GLU as Linear(X_a) ⊙ Sigmoid(Linear(X_b))
                 # However, in PyTorch, GLU as X_a ⊙ Sigmoid(X_b)
                 # https://pytorch.org/docs/master/nn.functional.html#torch.nn.functional.glu
-                # Because in original paper, the representation of GLU and GTU are ambiguous
+                # Because in original paper, the representation of GLU and GTU is ambiguous
                 # So, it is arguable which one version is correct
 
                 # (x_p + x_in) ⊙ Sigmoid(x_q)
@@ -305,7 +305,7 @@ class GraphConvLayer(nn.Module):
         return x_gc_out
 
 class STConvBlock(nn.Module):
-    # STConv Block contains 'TNSATND' structure
+    # STConv Block contains 'TGTND' structure
     # T: Gated Temporal Convolution Layer (GLU or GTU)
     # G: Graph Convolution Layer (ChebConv or GCNConv)
     # T: Gated Temporal Convolution Layer (GLU or GTU)
