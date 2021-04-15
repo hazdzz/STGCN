@@ -6,9 +6,8 @@ from model import layers
 class STGCN_ChebConv(nn.Module):
     # STGCN(ChebConv) contains 'TGTND TGTND TNFF' structure
     # ChebConv is the graph convolution from ChebyNet.
-    # Using the Chebyshev polynomials of the first kind to
-    # approximate graph convolution kernel from Spectral CNN.
-    # https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/nn/conv/cheb_conv.html#ChebConv
+    # Using the Chebyshev polynomials of the first kind as graph filter.
+    # It is a FIR filter, and it is an AR filter.
         
     # T: Gated Temporal Convolution Layer (GLU or GTU)
     # G: Graph Convolution Layer (ChebConv)
@@ -80,7 +79,8 @@ class STGCN_ChebConv(nn.Module):
 class STGCN_GCNConv(nn.Module):
     # STGCN(GCNConv) contains 'TGTND TGTND TNFF' structure
     # GCNConv is the graph convolution from GCN.
-    # https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/nn/conv/gcn_conv.html#GCNConv
+    # GCNConv is not the first-order ChebConv, because the renormalization trick is used.
+    # Be careful about over-smoothing.
         
     # T: Gated Temporal Convolution Layer (GLU or GTU)
     # G: Graph Convolution Layer (GCNConv)
