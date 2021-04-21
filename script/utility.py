@@ -36,7 +36,7 @@ def calculate_laplacian_matrix(adj_mat, mat_type):
     # Symmetric normalized Laplacian
     # For SpectraConv
     # To [0, 1]
-    sym_normd_lap_mat = np.matmul(np.matmul(deg_mat_inv_sqrt, com_lap_mat), deg_mat_inv_sqrt)
+    sym_normd_lap_mat = id_mat - np.matmul(np.matmul(deg_mat_inv_sqrt, adj_mat), deg_mat_inv_sqrt)
 
     # For ChebConv
     # From [0, 1] to [-1, 1]
