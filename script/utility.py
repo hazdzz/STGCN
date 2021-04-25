@@ -40,7 +40,8 @@ def calculate_laplacian_matrix(adj_mat, mat_type):
 
     # For ChebConv
     # From [0, 1] to [-1, 1]
-    lambda_max_sym = eigsh(sym_normd_lap_mat, k=1, which='LM', return_eigenvectors=False)[0]
+    lambda_max_sym = max(np.linalg.eigh(sym_normd_lap_mat)[0])
+    #lambda_max_sym = eigsh(sym_normd_lap_mat, k=1, which='LM', return_eigenvectors=False)[0]
     wid_sym_normd_lap_mat = 2 * sym_normd_lap_mat / lambda_max_sym - id_mat
 
     # For GCNConv
@@ -53,7 +54,8 @@ def calculate_laplacian_matrix(adj_mat, mat_type):
 
     # For ChebConv
     # From [0, 1] to [-1, 1]
-    lambda_max_rw = eigsh(rw_normd_lap_mat, k=1, which='LM', return_eigenvectors=False)[0]
+    lambda_max_rw = max(np.linalg.eigh(rw_normd_lap_mat)[0])
+    #lambda_max_rw = eigsh(rw_normd_lap_mat, k=1, which='LM', return_eigenvectors=False)[0]
     wid_rw_normd_lap_mat = 2 * rw_normd_lap_mat / lambda_max_rw - id_mat
 
     # For GCNConv
