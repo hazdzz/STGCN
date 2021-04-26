@@ -217,7 +217,7 @@ def main(learning_rate, weight_decay_rate, graph_conv_type, model_save_path, mod
 
 def train(loss, epochs, optimizer, scheduler, early_stopping, model, model_save_path, train_iter, val_iter):
     min_val_loss = np.inf
-    for epoch in range(1, epochs + 1):
+    for epoch in range(epochs):
         l_sum, n = 0.0, 0  # 'l_sum' is epoch sum loss, 'n' is epoch instance number
         model.train()
         for x, y in tqdm.tqdm(train_iter):
@@ -230,14 +230,13 @@ def train(loss, epochs, optimizer, scheduler, early_stopping, model, model_save_
             l_sum += l.item() * y.shape[0]
             n += y.shape[0]
         val_loss = val(model, val_iter)
-        # GPU memory usage
-        gpu_mem_alloc = torch.cuda.max_memory_allocated() / 1000000 if torch.cuda.is_available() else 0
         if val_loss < min_val_loss:
             min_val_loss = val_loss
-        print('Epoch: {:03d} | Lr: {:.20f} |Train loss: {:.6f} | Val loss: {:.6f} | GPU occupy: {:.6f} MiB'.\
-            format(epoch, optimizer.param_groups[0]['lr'], l_sum / n, val_loss, gpu_mem_alloc))
-
         early_stopping(val_loss, model)
+        # GPU memory usage
+        gpu_mem_alloc = torch.cuda.max_memory_allocated() / 1000000 if torch.cuda.is_available() else 0
+        print('Epoch: {:03d} | Lr: {:.20f} |Train loss: {:.6f} | Val loss: {:.6f} | GPU occupy: {:.6f} MiB'.\
+            format(epoch+1, optimizer.param_groups[0]['lr'], l_sum / n, val_loss, gpu_mem_alloc))
 
         if early_stopping.early_stop:
             print("Early stopping.")
