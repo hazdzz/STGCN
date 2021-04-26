@@ -48,7 +48,7 @@ class STGCN_ChebConv(nn.Module):
             self.leakyrelu = nn.LeakyReLU()
             self.prelu = nn.PReLU()
             self.elu = nn.ELU()
-            self.do = nn.Dropout(p=self.drop_rate)
+            self.do = nn.Dropout(p=drop_rate)
 
     def forward(self, x):
         x_stbs = self.st_blocks(x)
@@ -122,7 +122,7 @@ class STGCN_GCNConv(nn.Module):
             self.leakyrelu = nn.LeakyReLU()
             self.prelu = nn.PReLU()
             self.elu = nn.ELU()
-            self.do = nn.Dropout(p=self.drop_rate)
+            self.do = nn.Dropout(p=drop_rate)
 
     def forward(self, x):
         x_stbs = self.st_blocks(x)
