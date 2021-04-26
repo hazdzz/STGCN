@@ -237,7 +237,7 @@ def train(loss, epochs, optimizer, scheduler, early_stopping, model, model_save_
         print('Epoch: {:03d} | Lr: {:.20f} |Train loss: {:.6f} | Val loss: {:.6f} | GPU occupy: {:.6f} MiB'.\
             format(epoch, optimizer.param_groups[0]['lr'], l_sum / n, val_loss, gpu_mem_alloc))
 
-        early_stopping(valid_loss, model)
+        early_stopping(val_loss, model)
 
         if early_stopping.early_stop:
             print("Early stopping.")
