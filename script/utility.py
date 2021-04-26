@@ -1,7 +1,6 @@
 import numpy as np
-
+from scipy.linalg import eigvalsh
 from scipy.linalg import fractional_matrix_power
-from scipy.linalg import eigsh
 
 import torch
 
@@ -48,8 +47,8 @@ def calculate_laplacian_matrix(adj_mat, mat_type):
     # For ChebConv
     # From [0, 1] to [-1, 1]
     # wid_L_sym = 2 * L_sym / lambda_max_sym - I
-    #sym_max_lambda = max(np.linalg.eigh(sym_normd_lap_mat)[0])
-    sym_max_lambda = eigsh(sym_normd_lap_mat, k=1, which='LM', return_eigenvectors=False)[0]
+    #sym_max_lambda = max(np.linalg.eigvalsh(sym_normd_lap_mat))
+    sym_max_lambda = max(eigvalsh(sym_normd_lap_mat))
     wid_sym_normd_lap_mat = 2 * sym_normd_lap_mat / sym_max_lambda - id_mat
 
     # For GCNConv
@@ -65,8 +64,8 @@ def calculate_laplacian_matrix(adj_mat, mat_type):
     # For ChebConv
     # From [0, 1] to [-1, 1]
     # wid_L_rw = 2 * L_rw / lambda_max_rw - I
-    #rw_max_lambda = max(np.linalg.eigh(rw_normd_lap_mat)[0])
-    rw_max_lambda = eigsh(rw_normd_lap_mat, k=1, which='LM', return_eigenvectors=False)[0]
+    #rw_max_lambda = max(np.linalg.eigvalsh(rw_normd_lap_mat))
+    rw_max_lambda = max(eigvalsh(rw_normd_lap_mat))
     wid_rw_normd_lap_mat = 2 * rw_normd_lap_mat / rw_max_lambda - id_mat
 
     # For GCNConv
