@@ -1,7 +1,7 @@
 import numpy as np
 
 from scipy.linalg import fractional_matrix_power
-from scipy.sparse.linalg import eigsh
+from scipy.linalg import eigsh
 
 import torch
 
