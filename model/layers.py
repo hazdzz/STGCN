@@ -210,7 +210,7 @@ class ChebConv(nn.Module):
 
         # Using recurrence relation to reduce time complexity from O(n^2) to O(K|E|),
         # where K = Ks - 1
-        x = x.reshape(n_vertex, -1)
+        x = x.view(n_vertex, -1)
         x_0 = x
         x_1 = torch.mm(self.chebconv_matrix, x)
         if self.Ks - 1 < 0:
@@ -267,8 +267,8 @@ class GCNConv(nn.Module):
     def forward(self, x):
         batch_size, c_in, T, n_vertex = x.shape
 
-        x_first_mul = torch.mm(x.reshape(-1, c_in), self.weight).reshape(n_vertex, -1)
-        x_second_mul = torch.mm(self.gcnconv_matrix, x_first_mul).reshape(-1, self.c_out)
+        x_first_mul = torch.mm(x.view(-1, c_in), self.weight).view(n_vertex, -1)
+        x_second_mul = torch.mm(self.gcnconv_matrix, x_first_mul).view(-1, self.c_out)
 
         if self.bias is not None:
             x_gcnconv = x_second_mul + self.bias
@@ -300,7 +300,7 @@ class GraphConvLayer(nn.Module):
             x_gc = self.chebconv(x_gc_in)
         elif self.graph_conv_type == "gcnconv":
             x_gc = self.gcnconv(x_gc_in)
-        x_gc_with_rc = torch.add(x_gc.reshape(batch_size, self.c_out, T, n_vertex), x_gc_in)
+        x_gc_with_rc = torch.add(x_gc.view(batch_size, self.c_out, T, n_vertex), x_gc_in)
         x_gc_out = x_gc_with_rc
         return x_gc_out
 
