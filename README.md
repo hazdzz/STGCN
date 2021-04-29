@@ -22,6 +22,16 @@ https://arxiv.org/abs/1709.04875
 2. ChebyNet: https://github.com/mdeff/cnn_graph
 3. GCN: https://github.com/tkipf/pygcn
 
+## Dataset
+### Source
+1. METR-LA: [DCRNN author's Google Drive](https://drive.google.com/file/d/1pAGRfzMx6K9WWsfDcD1NMbIif0T0saFC/view?usp=sharing)
+2. PEMS-BAY: [DCRNN author's Google Drive](https://drive.google.com/file/d/1wD-mHlqAb2mtHOe_68fZvDh1LpDegMMq/view?usp=sharing)
+3. PeMSD7(M): [STGCN GitHub repository](https://github.com/VeritasYin/STGCN_IJCAI-18/blob/master/data_loader/PeMS-M.zip)
+
+### Preprocessing
+Using the formula from [ChebyNet](https://arxiv.org/abs/1606.09375)：
+<img src="./figure/Weighted Adjacency Matrix.png" style="zoom:100%" />
+
 ## Model structure
 <img src="./figure/stgcn_model_structure.png" style="zoom:100%" />
 
