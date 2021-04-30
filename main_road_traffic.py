@@ -221,7 +221,7 @@ def train(loss, epochs, optimizer, scheduler, early_stopping, model, model_save_
         l_sum, n = 0.0, 0  # 'l_sum' is epoch sum loss, 'n' is epoch instance number
         model.train()
         for x, y in tqdm.tqdm(train_iter):
-            y_pred = model(x).reshape(len(x), -1)  # [batch_size, num_nodes]
+            y_pred = model(x).view(len(x), -1)  # [batch_size, num_nodes]
             l = loss(y_pred, y)
             optimizer.zero_grad()
             l.backward()
@@ -248,7 +248,7 @@ def val(model, val_iter):
     l_sum, n = 0.0, 0
     with torch.no_grad():
         for x, y in val_iter:
-            y_pred = model(x).reshape(len(x), -1)
+            y_pred = model(x).view(len(x), -1)
             l = loss(y_pred, y)
             l_sum += l.item() * y.shape[0]
             n += y.shape[0]
