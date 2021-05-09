@@ -19,6 +19,7 @@ class Align(nn.Module):
             x_align = torch.cat([x, torch.zeros([batch_size, self.c_out - self.c_in, timestep, n_vertex]).to(x)], dim=1)
         else:
             x_align = x
+        
         return x_align
 
 class CausalConv1d(nn.Conv1d):
@@ -33,6 +34,7 @@ class CausalConv1d(nn.Conv1d):
         result = super(CausalConv1d, self).forward(input)
         if self.__padding != 0:
             return result[: , : , : -self.__padding]
+        
         return result
 
 class CausalConv2d(nn.Conv2d):
@@ -51,6 +53,7 @@ class CausalConv2d(nn.Conv2d):
         if self.__padding != 0:
             input = F.pad(input, (self.left_padding[1], 0, self.left_padding[0], 0))
         result = super(CausalConv2d, self).forward(input)
+
         return result
 
 class TemporalConvLayer(nn.Module):
@@ -210,7 +213,7 @@ class ChebConv(nn.Module):
 
         # Using recurrence relation to reduce time complexity from O(n^2) to O(K|E|),
         # where K = Ks - 1
-        x = x.view(n_vertex, -1)
+        x = x.reshape(n_vertex, -1)
         x_0 = x
         x_1 = torch.mm(self.chebconv_matrix, x)
         if self.Ks - 1 < 0:
@@ -267,7 +270,7 @@ class GCNConv(nn.Module):
     def forward(self, x):
         batch_size, c_in, T, n_vertex = x.shape
 
-        x_first_mul = torch.mm(x.view(-1, c_in), self.weight).view(n_vertex, -1)
+        x_first_mul = torch.mm(x.reshape(-1, c_in), self.weight).view(n_vertex, -1)
         x_second_mul = torch.mm(self.gcnconv_matrix, x_first_mul).view(-1, self.c_out)
 
         if self.bias is not None:
@@ -302,6 +305,7 @@ class GraphConvLayer(nn.Module):
             x_gc = self.gcnconv(x_gc_in)
         x_gc_with_rc = torch.add(x_gc.view(batch_size, self.c_out, T, n_vertex), x_gc_in)
         x_gc_out = x_gc_with_rc
+
         return x_gc_out
 
 class STConvBlock(nn.Module):
@@ -361,6 +365,7 @@ class STConvBlock(nn.Module):
         x_tc2_ln = self.tc2_ln(x_tmp_conv2.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
         x_do = self.do(x_tc2_ln)
         x_st_conv_out = x_do
+
         return x_st_conv_out
 
 class OutputBlock(nn.Module):
@@ -417,4 +422,5 @@ class OutputBlock(nn.Module):
             x_act_func = self.elu(x_fc1)
         x_fc2 = self.fc2(x_act_func).permute(0, 3, 1, 2)
         x_out = x_fc2
+
         return x_out

@@ -16,80 +16,86 @@ def calculate_laplacian_matrix(adj_mat, mat_type):
     # D = D_row as default
     deg_mat = deg_mat_row
     adj_mat = np.asmatrix(adj_mat)
-    
-    deg_mat_inv = np.linalg.inv(deg_mat)
-    deg_mat_inv[np.isinf(deg_mat_inv)] = 0.
-
-    deg_mat_inv_sqrt = fractional_matrix_power(deg_mat, -0.5)
-    deg_mat_inv_sqrt[np.isinf(deg_mat_inv_sqrt)] = 0.
 
     # wid_A = A + I
     wid_adj_mat = adj_mat + id_mat
     # wid_D = D + I
     wid_deg_mat = deg_mat + id_mat
 
-    wid_deg_mat_inv = np.linalg.inv(wid_deg_mat)
-    wid_deg_mat_inv[np.isinf(wid_deg_mat_inv)] = 0.
-
-    wid_deg_mat_inv_sqrt = fractional_matrix_power(wid_deg_mat, -0.5)
-    wid_deg_mat_inv_sqrt[np.isinf(wid_deg_mat_inv_sqrt)] = 0.
-
     # Combinatorial Laplacian
     # L_com = D - A
     com_lap_mat = deg_mat - adj_mat
-
-    # Symmetric normalized Laplacian
-    # For SpectraConv
-    # To [0, 1]
-    # L_sym = D^{-0.5} * L_com * D^{-0.5} = I - D^{-0.5} * A * D^{-0.5}
-    sym_normd_lap_mat = id_mat - np.matmul(np.matmul(deg_mat_inv_sqrt, adj_mat), deg_mat_inv_sqrt)
-
-    # For ChebConv
-    # From [0, 1] to [-1, 1]
-    # wid_L_sym = 2 * L_sym / lambda_max_sym - I
-    #sym_max_lambda = max(np.linalg.eigvalsh(sym_normd_lap_mat))
-    sym_max_lambda = max(eigvalsh(sym_normd_lap_mat))
-    wid_sym_normd_lap_mat = 2 * sym_normd_lap_mat / sym_max_lambda - id_mat
-
-    # For GCNConv
-    # hat_L_sym = wid_D^{-0.5} * wid_A * wid_D^{-0.5}
-    hat_sym_normd_lap_mat = np.matmul(np.matmul(wid_deg_mat_inv_sqrt, wid_adj_mat), wid_deg_mat_inv_sqrt)
-
-    # Random Walk normalized Laplacian
-    # For SpectraConv
-    # To [0, 1]
-    # L_rw = D^{-1} * L_com = I - D^{-1} * A
-    rw_normd_lap_mat = id_mat - np.matmul(deg_mat_inv, adj_mat)
-
-    # For ChebConv
-    # From [0, 1] to [-1, 1]
-    # wid_L_rw = 2 * L_rw / lambda_max_rw - I
-    #rw_max_lambda = max(np.linalg.eigvalsh(rw_normd_lap_mat))
-    rw_max_lambda = max(eigvalsh(rw_normd_lap_mat))
-    wid_rw_normd_lap_mat = 2 * rw_normd_lap_mat / rw_max_lambda - id_mat
-
-    # For GCNConv
-    # hat_L_rw = wid_D^{-1} * wid_A
-    hat_rw_normd_lap_mat = np.matmul(wid_deg_mat_inv, wid_adj_mat)
 
     if mat_type == 'id_mat':
         return id_mat
     elif mat_type == 'com_lap_mat':
         return com_lap_mat
-    elif mat_type == 'sym_normd_lap_mat':
-        return sym_normd_lap_mat
-    elif mat_type == 'wid_sym_normd_lap_mat':
-        return wid_sym_normd_lap_mat
-    elif mat_type == 'hat_sym_normd_lap_mat':
-        return hat_sym_normd_lap_mat
-    elif mat_type == 'rw_normd_lap_mat':
-        return rw_normd_lap_mat
-    elif mat_type == 'wid_rw_normd_lap_mat':
-        return wid_rw_normd_lap_mat
-    elif mat_type == 'hat_rw_normd_lap_mat':
-        return hat_rw_normd_lap_mat
-    else:
-        raise ValueError(f'ERROR: {mat_type} is unknown.')
+
+    if (mat_type == 'sym_normd_lap_mat') or (mat_type == 'wid_sym_normd_lap_mat') or (mat_type == 'hat_sym_normd_lap_mat'):
+        deg_mat_inv_sqrt = fractional_matrix_power(deg_mat, -0.5)
+        deg_mat_inv_sqrt[np.isinf(deg_mat_inv_sqrt)] = 0.
+
+        wid_deg_mat_inv_sqrt = fractional_matrix_power(wid_deg_mat, -0.5)
+        wid_deg_mat_inv_sqrt[np.isinf(wid_deg_mat_inv_sqrt)] = 0.
+
+        # Symmetric normalized Laplacian
+        # For SpectraConv
+        # To [0, 1]
+        # L_sym = D^{-0.5} * L_com * D^{-0.5} = I - D^{-0.5} * A * D^{-0.5}
+        sym_normd_lap_mat = id_mat - np.matmul(np.matmul(deg_mat_inv_sqrt, adj_mat), deg_mat_inv_sqrt)
+
+        # For ChebConv
+        # From [0, 1] to [-1, 1]
+        # wid_L_sym = 2 * L_sym / lambda_max_sym - I
+        #sym_max_lambda = max(np.linalg.eigvalsh(sym_normd_lap_mat))
+        sym_max_lambda = max(eigvalsh(sym_normd_lap_mat))
+        wid_sym_normd_lap_mat = 2 * sym_normd_lap_mat / sym_max_lambda - id_mat
+
+        # For GCNConv
+        # hat_L_sym = wid_D^{-0.5} * wid_A * wid_D^{-0.5}
+        hat_sym_normd_lap_mat = np.matmul(np.matmul(wid_deg_mat_inv_sqrt, wid_adj_mat), wid_deg_mat_inv_sqrt)
+
+        if mat_type == 'sym_normd_lap_mat':
+            return sym_normd_lap_mat
+        elif mat_type == 'wid_sym_normd_lap_mat':
+            return wid_sym_normd_lap_mat
+        elif mat_type == 'hat_sym_normd_lap_mat':
+            return hat_sym_normd_lap_mat
+
+    elif (mat_type == 'rw_normd_lap_mat') or (mat_type == 'wid_rw_normd_lap_mat') or (mat_type == 'hat_rw_normd_lap_mat'):
+        try:
+            deg_mat_inv = np.linalg.inv(deg_mat)
+        except:
+            print(f'Degree matrix is a singular matrix. Cannot use random walk normalized Laplacian matrix.')
+        else:
+            deg_mat_inv[np.isinf(deg_mat_inv)] = 0.
+
+        wid_deg_mat_inv = np.linalg.inv(wid_deg_mat)
+        wid_deg_mat_inv[np.isinf(wid_deg_mat_inv)] = 0.
+
+        # Random Walk normalized Laplacian
+        # For SpectraConv
+        # To [0, 1]
+        # L_rw = D^{-1} * L_com = I - D^{-1} * A
+        rw_normd_lap_mat = id_mat - np.matmul(deg_mat_inv, adj_mat)
+
+        # For ChebConv
+        # From [0, 1] to [-1, 1]
+        # wid_L_rw = 2 * L_rw / lambda_max_rw - I
+        #rw_max_lambda = max(np.linalg.eigvalsh(rw_normd_lap_mat))
+        rw_max_lambda = max(eigvalsh(rw_normd_lap_mat))
+        wid_rw_normd_lap_mat = 2 * rw_normd_lap_mat / rw_max_lambda - id_mat
+
+        # For GCNConv
+        # hat_L_rw = wid_D^{-1} * wid_A
+        hat_rw_normd_lap_mat = np.matmul(wid_deg_mat_inv, wid_adj_mat)
+
+        if mat_type == 'rw_normd_lap_mat':
+            return rw_normd_lap_mat
+        elif mat_type == 'wid_rw_normd_lap_mat':
+            return wid_rw_normd_lap_mat
+        elif mat_type == 'hat_rw_normd_lap_mat':
+            return hat_rw_normd_lap_mat
 
 def evaluate_model(model, loss, data_iter):
     model.eval()
