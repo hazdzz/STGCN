@@ -64,9 +64,10 @@ def calculate_laplacian_matrix(adj_mat, mat_type):
 
     elif (mat_type == 'rw_normd_lap_mat') or (mat_type == 'wid_rw_normd_lap_mat') or (mat_type == 'hat_rw_normd_lap_mat'):
         try:
+            # There is a small possibility that the degree matrix is a singular matrix.
             deg_mat_inv = np.linalg.inv(deg_mat)
         except:
-            print(f'Degree matrix is a singular matrix. Cannot use random walk normalized Laplacian matrix.')
+            print(f'The degree matrix is a singular matrix. Cannot use random walk normalized Laplacian matrix.')
         else:
             deg_mat_inv[np.isinf(deg_mat_inv)] = 0.
 
