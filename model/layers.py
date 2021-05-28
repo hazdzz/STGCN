@@ -88,7 +88,7 @@ class TemporalConvLayer(nn.Module):
         self.softsign = nn.Softsign()
         self.relu = nn.ReLU()
         self.softplus = nn.Softplus()
-        self.leakyrelu = nn.LeakyReLU()
+        self.leaky_relu = nn.LeakyReLU()
         self.prelu = nn.PReLU()
         self.elu = nn.ELU()
 
@@ -101,7 +101,7 @@ class TemporalConvLayer(nn.Module):
             x_q = x_causal_conv[:, -self.c_out:, :, :]
 
             # Temporal Convolution Layer (GLU)
-            if self.act_func == "glu":
+            if self.act_func == 'glu':
                 # GLU was first purposed in
                 # Language Modeling with Gated Convolutional Networks
                 # https://arxiv.org/abs/1612.08083
@@ -117,7 +117,7 @@ class TemporalConvLayer(nn.Module):
                 x_tc_out = x_glu
 
             # Temporal Convolution Layer (GTU)
-            elif self.act_func == "gtu":
+            elif self.act_func == 'gtu':
                 # Tanh(x_p + x_in) ⊙ Sigmoid(x_q)
                 x_gtu = torch.mul(self.tanh(x_p + x_in), self.sigmoid(x_q))
                 x_tc_out = x_gtu
@@ -128,47 +128,47 @@ class TemporalConvLayer(nn.Module):
         else:
 
             # Temporal Convolution Layer (Linear)
-            if self.act_func == "linear":
+            if self.act_func == 'linear':
                 x_linear = self.linear(x_causal_conv + x_in)
                 x_tc_out = x_linear
             
             # Temporal Convolution Layer (Sigmoid)
-            elif self.act_func == "sigmoid":
+            elif self.act_func == 'sigmoid':
                 x_sigmoid = self.sigmoid(x_causal_conv + x_in)
                 x_tc_out = x_sigmoid
 
             # Temporal Convolution Layer (Tanh)
-            elif self.act_func == "tanh":
+            elif self.act_func == 'tanh':
                 x_tanh = self.tanh(x_causal_conv + x_in)
                 x_tc_out = x_tanh
 
             # Temporal Convolution Layer (Softsign)
-            elif self.act_func == "softsign":
+            elif self.act_func == 'softsign':
                 x_softsign = self.softsign(x_causal_conv + x_in)
                 x_tc_out = x_softsign
 
             # Temporal Convolution Layer (ReLU)
-            elif self.act_func == "relu":
+            elif self.act_func == 'relu':
                 x_relu = self.relu(x_causal_conv + x_in)
                 x_tc_out = x_relu
 
             # Temporal Convolution Layer (Softplus)
-            elif self.act_func == "softplus":
+            elif self.act_func == 'softplus':
                 x_softplus = self.softplus(x_causal_conv + x_in)
                 x_tc_out = x_softplus
         
             # Temporal Convolution Layer (LeakyReLU)
-            elif self.act_func == "leakyrelu":
-                x_leakyrelu = self.leakyrelu(x_causal_conv + x_in)
-                x_tc_out = x_leakyrelu
+            elif self.act_func == 'leaky_relu':
+                x_leaky_relu = self.leaky_relu(x_causal_conv + x_in)
+                x_tc_out = x_leaky_relu
 
             # Temporal Convolution Layer (PReLU)
-            elif self.act_func == "prelu":
+            elif self.act_func == 'prelu':
                 x_prelu = self.prelu(x_causal_conv + x_in)
                 x_tc_out = x_prelu
 
             # Temporal Convolution Layer (ELU)
-            elif self.act_func == "elu":
+            elif self.act_func == 'elu':
                 x_elu = self.elu(x_causal_conv + x_in)
                 x_tc_out = x_elu
 
@@ -198,8 +198,8 @@ class ChebConv(nn.Module):
         if self.graph_conv_act_func == 'sigmoid' or self.graph_conv_act_func == 'tanh' or self.graph_conv_act_func == 'softsign':
             init.xavier_uniform_(self.weight)
 
-        # For ReLU, Softplus, Leaky ReLU, PReLU, or ELU
-        elif self.graph_conv_act_func == 'relu' or self.graph_conv_act_func == 'softplus' or self.graph_conv_act_func == 'leakyrelu' \
+        # For ReLU, Softplus, LeakyReLU, PReLU, or ELU
+        elif self.graph_conv_act_func == 'relu' or self.graph_conv_act_func == 'softplus' or self.graph_conv_act_func == 'leaky_relu' \
             or self.graph_conv_act_func == 'prelu' or self.graph_conv_act_func == 'elu':
             init.kaiming_uniform_(self.weight)
 
@@ -257,8 +257,8 @@ class GCNConv(nn.Module):
         if self.graph_conv_act_func == 'sigmoid' or self.graph_conv_act_func == 'tanh' or self.graph_conv_act_func == 'softsign':
             init.xavier_uniform_(self.weight)
 
-        # For ReLU, Softplus, Leaky ReLU, PReLU, or ELU
-        elif self.graph_conv_act_func == 'relu' or self.graph_conv_act_func == 'softplus' or self.graph_conv_act_func == 'leakyrelu' \
+        # For ReLU, Softplus, LeakyReLU, PReLU, or ELU
+        elif self.graph_conv_act_func == 'relu' or self.graph_conv_act_func == 'softplus' or self.graph_conv_act_func == 'leaky_relu' \
             or self.graph_conv_act_func == 'prelu' or self.graph_conv_act_func == 'elu':
             init.kaiming_uniform_(self.weight)
 
@@ -291,17 +291,17 @@ class GraphConvLayer(nn.Module):
         self.graph_conv_matrix = graph_conv_matrix
         self.graph_conv_act_func = graph_conv_act_func
         self.enable_bias = True
-        if self.graph_conv_type == "chebconv":
+        if self.graph_conv_type == 'chebconv':
             self.chebconv = ChebConv(c_out, c_out, Ks, graph_conv_matrix, self.enable_bias, graph_conv_act_func)
-        elif self.graph_conv_type == "gcnconv":
+        elif self.graph_conv_type == 'gcnconv':
             self.gcnconv = GCNConv(c_out, c_out, graph_conv_matrix, self.enable_bias, graph_conv_act_func)
 
     def forward(self, x):
         x_gc_in = self.align(x)
         batch_size, c_in, T, n_vertex = x_gc_in.shape
-        if self.graph_conv_type == "chebconv":
+        if self.graph_conv_type == 'chebconv':
             x_gc = self.chebconv(x_gc_in)
-        elif self.graph_conv_type == "gcnconv":
+        elif self.graph_conv_type == 'gcnconv':
             x_gc = self.gcnconv(x_gc_in)
         x_gc_with_rc = torch.add(x_gc.view(batch_size, self.c_out, T, n_vertex), x_gc_in)
         x_gc_out = x_gc_with_rc
@@ -337,7 +337,7 @@ class STConvBlock(nn.Module):
         self.tanh = nn.Tanh()
         self.relu = nn.ReLU()
         self.softplus = nn.Softplus()
-        self.leakyrelu = nn.LeakyReLU()
+        self.leaky_relu = nn.LeakyReLU()
         self.prelu = nn.PReLU()
         self.elu = nn.ELU()
         self.do = nn.Dropout(p=drop_rate)
@@ -355,8 +355,8 @@ class STConvBlock(nn.Module):
             x_act_func = self.relu(x_graph_conv)
         elif self.graph_conv_act_func == 'softplus':
             x_act_func = self.softplus(x_graph_conv)
-        elif self.graph_conv_act_func == 'leakyrelu':
-            x_act_func = self.leakyrelu(x_graph_conv)
+        elif self.graph_conv_act_func == 'leaky_relu':
+            x_act_func = self.leaky_relu(x_graph_conv)
         elif self.graph_conv_act_func == 'prelu':
             x_act_func = self.prelu(x_graph_conv)
         elif self.graph_conv_act_func == 'elu':
@@ -395,7 +395,7 @@ class OutputBlock(nn.Module):
         self.softsign = nn.Softsign()
         self.relu = nn.ReLU()
         self.softplus = nn.Softplus()
-        self.leakyrelu = nn.LeakyReLU()
+        self.leaky_relu = nn.LeakyReLU()
         self.prelu = nn.PReLU()
         self.elu = nn.ELU()
         self.do = nn.Dropout(p=self.drop_rate)
@@ -414,8 +414,8 @@ class OutputBlock(nn.Module):
             x_act_func = self.relu(x_fc1)
         elif self.act_func == 'softplus':
             x_act_func = self.softplus(x_fc1)
-        elif self.act_func == 'leakyrelu':
-            x_act_func = self.leakyrelu(x_fc1)
+        elif self.act_func == 'leaky_relu':
+            x_act_func = self.leaky_relu(x_fc1)
         elif self.act_func == 'prelu':
             x_act_func = self.prelu(x_fc1)
         elif self.act_func == 'elu':

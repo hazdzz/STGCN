@@ -45,7 +45,7 @@ class STGCN_ChebConv(nn.Module):
             self.softsign = nn.Softsign()
             self.relu = nn.ReLU()
             self.softplus = nn.Softplus()
-            self.leakyrelu = nn.LeakyReLU()
+            self.leaky_relu = nn.LeakyReLU()
             self.prelu = nn.PReLU()
             self.elu = nn.ELU()
             self.do = nn.Dropout(p=drop_rate)
@@ -66,8 +66,8 @@ class STGCN_ChebConv(nn.Module):
                 x_act_func = self.relu(x_fc1)
             elif self.act_func == 'softplus':
                 x_act_func = self.softplus(x_fc1)
-            elif self.act_func == 'leakyrelu':
-                x_act_func = self.leakyrelu(x_fc1)
+            elif self.act_func == 'leaky_relu':
+                x_act_func = self.leaky_relu(x_fc1)
             elif self.act_func == 'prelu':
                 x_act_func = self.prelu(x_fc1)
             elif self.act_func == 'elu':
@@ -119,7 +119,7 @@ class STGCN_GCNConv(nn.Module):
             self.softsign = nn.Softsign()
             self.relu = nn.ReLU()
             self.softplus = nn.Softplus()
-            self.leakyrelu = nn.LeakyReLU()
+            self.leaky_relu = nn.LeakyReLU()
             self.prelu = nn.PReLU()
             self.elu = nn.ELU()
             self.do = nn.Dropout(p=drop_rate)
@@ -140,8 +140,8 @@ class STGCN_GCNConv(nn.Module):
                 x_act_func = self.relu(x_fc1)
             elif self.act_func == 'softplus':
                 x_act_func = self.softplus(x_fc1)
-            elif self.act_func == 'leakyrelu':
-                x_act_func = self.leakyrelu(x_fc1)
+            elif self.act_func == 'leaky_relu':
+                x_act_func = self.leaky_relu(x_fc1)
             elif self.act_func == 'prelu':
                 x_act_func = self.prelu(x_fc1)
             elif self.act_func == 'elu':
