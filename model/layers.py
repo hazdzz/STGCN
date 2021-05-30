@@ -185,9 +185,7 @@ class ChebConv(nn.Module):
             init.kaiming_uniform_(self.weight)
 
         if self.bias is not None:
-            _out_feats_bias = self.bias.size(0)
-            stdv_b = 1. / math.sqrt(_out_feats_bias)
-            init.uniform_(self.bias, -stdv_b, stdv_b)
+            init.zeros_(self.bias)
 
     def forward(self, x):
         batch_size, c_in, T, n_vertex = x.shape
@@ -244,9 +242,7 @@ class GCNConv(nn.Module):
             init.kaiming_uniform_(self.weight)
 
         if self.bias is not None:
-            _out_feats_bias = self.bias.size(0)
-            stdv_b = 1. / math.sqrt(_out_feats_bias)
-            init.uniform_(self.bias, -stdv_b, stdv_b)
+            init.zeros_(self.bias)
 
     def forward(self, x):
         batch_size, c_in, T, n_vertex = x.shape
