@@ -37,7 +37,7 @@ def calculate_laplacian_matrix(adj_mat, mat_type):
         # Symmetric normalized Laplacian
         # For SpectraConv
         # L_sym = D^{-0.5} * L_com * D^{-0.5} = I - D^{-0.5} * A * D^{-0.5}
-        sym_normd_lap_mat = id_mat - np.matmul(np.matmul(deg_mat_inv_sqrt, adj_mat), deg_mat_inv_sqrt)
+        sym_normd_lap_mat = np.matmul(np.matmul(deg_mat_inv_sqrt, com_lap_mat), deg_mat_inv_sqrt)
 
         # For ChebConv
         # wid_L_sym = 2 * L_sym / lambda_max_sym - I
@@ -63,7 +63,7 @@ def calculate_laplacian_matrix(adj_mat, mat_type):
         # Random Walk normalized Laplacian
         # For SpectraConv
         # L_rw = D^{-1} * L_com = I - D^{-1} * A
-        rw_normd_lap_mat = id_mat - np.matmul(deg_mat_inv, adj_mat)
+        rw_normd_lap_mat = np.matmul(deg_mat_inv, com_lap_mat)
 
         # For ChebConv
         # wid_L_rw = 2 * L_rw / lambda_max_rw - I
