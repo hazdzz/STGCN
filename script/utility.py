@@ -33,19 +33,14 @@ def calculate_laplacian_matrix(adj_mat, mat_type):
 
     if (mat_type == 'sym_normd_lap_mat') or (mat_type == 'wid_sym_normd_lap_mat') or (mat_type == 'hat_sym_normd_lap_mat'):
         deg_mat_inv_sqrt = fractional_matrix_power(deg_mat, -0.5)
-        deg_mat_inv_sqrt[np.isinf(deg_mat_inv_sqrt)] = 0.
-
         wid_deg_mat_inv_sqrt = fractional_matrix_power(wid_deg_mat, -0.5)
-        wid_deg_mat_inv_sqrt[np.isinf(wid_deg_mat_inv_sqrt)] = 0.
 
         # Symmetric normalized Laplacian
         # For SpectraConv
-        # To [0, 1]
         # L_sym = D^{-0.5} * L_com * D^{-0.5} = I - D^{-0.5} * A * D^{-0.5}
         sym_normd_lap_mat = np.matmul(np.matmul(deg_mat_inv_sqrt, com_lap_mat), deg_mat_inv_sqrt)
 
         # For ChebConv
-        # From [0, 1] to [-1, 1]
         # wid_L_sym = 2 * L_sym / lambda_max_sym - I
         #sym_max_lambda = max(np.linalg.eigvalsh(sym_normd_lap_mat))
         sym_max_lambda = max(eigvalsh(sym_normd_lap_mat))
@@ -63,25 +58,16 @@ def calculate_laplacian_matrix(adj_mat, mat_type):
             return hat_sym_normd_lap_mat
 
     elif (mat_type == 'rw_normd_lap_mat') or (mat_type == 'wid_rw_normd_lap_mat') or (mat_type == 'hat_rw_normd_lap_mat'):
-        try:
-            # There is a small possibility that the degree matrix is a singular matrix.
-            deg_mat_inv = np.linalg.inv(deg_mat)
-        except:
-            print(f'The degree matrix is a singular matrix. Cannot use random walk normalized Laplacian matrix.')
-        else:
-            deg_mat_inv[np.isinf(deg_mat_inv)] = 0.
 
+        deg_mat_inv = np.linalg.inv(deg_mat)
         wid_deg_mat_inv = np.linalg.inv(wid_deg_mat)
-        wid_deg_mat_inv[np.isinf(wid_deg_mat_inv)] = 0.
 
         # Random Walk normalized Laplacian
         # For SpectraConv
-        # To [0, 1]
         # L_rw = D^{-1} * L_com = I - D^{-1} * A
         rw_normd_lap_mat = np.matmul(deg_mat_inv, com_lap_mat)
 
         # For ChebConv
-        # From [0, 1] to [-1, 1]
         # wid_L_rw = 2 * L_rw / lambda_max_rw - I
         #rw_max_lambda = max(np.linalg.eigvalsh(rw_normd_lap_mat))
         rw_max_lambda = max(eigvalsh(rw_normd_lap_mat))

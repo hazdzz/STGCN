@@ -159,14 +159,13 @@ class TemporalConvLayer(nn.Module):
         return x_tc_out
 
 class ChebConv(nn.Module):
-    def __init__(self, c_in, c_out, Ks, chebconv_matrix, enable_bias, graph_conv_act_func):
+    def __init__(self, c_in, c_out, Ks, chebconv_matrix, enable_bias):
         super(ChebConv, self).__init__()
         self.c_in = c_in
         self.c_out = c_out
         self.Ks = Ks
         self.chebconv_matrix = chebconv_matrix
         self.enable_bias = enable_bias
-        self.graph_conv_act_func = graph_conv_act_func
         self.weight = nn.Parameter(torch.FloatTensor(Ks, c_in, c_out))
         if enable_bias == True:
             self.bias = nn.Parameter(torch.FloatTensor(c_out))
@@ -175,14 +174,7 @@ class ChebConv(nn.Module):
         self.initialize_parameters()
 
     def initialize_parameters(self):
-        # For Sigmoid or Tanh
-        if self.graph_conv_act_func == 'sigmoid' or self.graph_conv_act_func == 'tanh':
-            init.xavier_uniform_(tensor=self.weight, gain=init.calculate_gain(self.graph_conv_act_func))
-
-        # For ReLU, LeakyReLU, or ELU
-        elif self.graph_conv_act_func == 'relu' or self.graph_conv_act_func == 'leaky_relu' \
-            or self.graph_conv_act_func == 'elu':
-            init.kaiming_uniform_(self.weight)
+        init.xavier_uniform_(self.weight)
 
         if self.bias is not None:
             init.zeros_(self.bias)
@@ -217,13 +209,12 @@ class ChebConv(nn.Module):
         return x_chebconv
 
 class GCNConv(nn.Module):
-    def __init__(self, c_in, c_out, gcnconv_matrix, enable_bias, graph_conv_act_func):
+    def __init__(self, c_in, c_out, gcnconv_matrix, enable_bias):
         super(GCNConv, self).__init__()
         self.c_in = c_in
         self.c_out = c_out
         self.gcnconv_matrix = gcnconv_matrix
         self.enable_bias = enable_bias
-        self.graph_conv_act_func = graph_conv_act_func
         self.weight = nn.Parameter(torch.FloatTensor(c_in, c_out))
         if enable_bias == True:
             self.bias = nn.Parameter(torch.FloatTensor(c_out))
@@ -232,14 +223,7 @@ class GCNConv(nn.Module):
         self.initialize_parameters()
 
     def initialize_parameters(self):
-        # For Sigmoid or Tanh
-        if self.graph_conv_act_func == 'sigmoid' or self.graph_conv_act_func == 'tanh':
-            init.xavier_uniform_(tensor=self.weight, gain=init.calculate_gain(self.graph_conv_act_func))
-
-        # For ReLU, LeakyReLU, or ELU
-        elif self.graph_conv_act_func == 'relu' or self.graph_conv_act_func == 'leaky_relu' \
-            or self.graph_conv_act_func == 'elu':
-            init.kaiming_uniform_(self.weight)
+        init.xavier_uniform_(self.weight)
 
         if self.bias is not None:
             init.zeros_(self.bias)
@@ -258,7 +242,7 @@ class GCNConv(nn.Module):
         return x_gcnconv
 
 class GraphConvLayer(nn.Module):
-    def __init__(self, Ks, c_in, c_out, graph_conv_type, graph_conv_matrix, graph_conv_act_func):
+    def __init__(self, Ks, c_in, c_out, graph_conv_type, graph_conv_matrix):
         super(GraphConvLayer, self).__init__()
         self.Ks = Ks
         self.c_in = c_in
@@ -266,12 +250,11 @@ class GraphConvLayer(nn.Module):
         self.align = Align(c_in, c_out)
         self.graph_conv_type = graph_conv_type
         self.graph_conv_matrix = graph_conv_matrix
-        self.graph_conv_act_func = graph_conv_act_func
         self.enable_bias = True
         if self.graph_conv_type == 'chebconv':
-            self.chebconv = ChebConv(c_out, c_out, Ks, graph_conv_matrix, self.enable_bias, graph_conv_act_func)
+            self.chebconv = ChebConv(c_out, c_out, Ks, graph_conv_matrix, self.enable_bias)
         elif self.graph_conv_type == 'gcnconv':
-            self.gcnconv = GCNConv(c_out, c_out, graph_conv_matrix, self.enable_bias, graph_conv_act_func)
+            self.gcnconv = GCNConv(c_out, c_out, graph_conv_matrix, self.enable_bias)
 
     def forward(self, x):
         x_gc_in = self.align(x)
@@ -307,7 +290,7 @@ class STConvBlock(nn.Module):
         self.graph_conv_act_func = 'relu'
         self.drop_rate = drop_rate
         self.tmp_conv1 = TemporalConvLayer(Kt, last_block_channel, channels[0], n_vertex, gated_act_func, self.enable_gated_act_func)
-        self.graph_conv = GraphConvLayer(Ks, channels[0], channels[1], graph_conv_type, graph_conv_matrix, self.graph_conv_act_func)
+        self.graph_conv = GraphConvLayer(Ks, channels[0], channels[1], graph_conv_type, graph_conv_matrix)
         self.tmp_conv2 = TemporalConvLayer(Kt, channels[1], channels[2], n_vertex, gated_act_func, self.enable_gated_act_func)
         self.tc2_ln = nn.LayerNorm([n_vertex, channels[2]])
         self.sigmoid = nn.Sigmoid()
