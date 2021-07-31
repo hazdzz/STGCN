@@ -57,8 +57,8 @@ def calculate_laplacian_matrix(adj_mat, mat_type):
 
     elif (mat_type == 'rw_normd_lap_mat') or (mat_type == 'wid_rw_normd_lap_mat') or (mat_type == 'hat_rw_normd_lap_mat'):
 
-        deg_mat_inv = np.linalg.inv(deg_mat)
-        wid_deg_mat_inv = np.linalg.inv(wid_deg_mat)
+        deg_mat_inv = fractional_matrix_power(deg_mat, -1)
+        wid_deg_mat_inv = fractional_matrix_power(wid_deg_mat, -1)
 
         # Random Walk normalized Laplacian
         # For SpectraConv
