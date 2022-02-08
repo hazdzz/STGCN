@@ -1,7 +1,6 @@
-torch~=1.8.0
-tqdm~=4.54.1
-pandas~=1.2.3
-scipy~=1.6.0
-numpy~=1.19.5
-torchsummary~=1.5.1
-scikit_learn~=0.24.1
+pandas~=1.3.4
+numpy~=1.20.3
+scipy~=1.7.1
+scikit_learn~=1.0.2
+torch~=1.10.1
+tqdm~=4.62.3
