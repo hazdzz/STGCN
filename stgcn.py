@@ -50,7 +50,7 @@ def get_parameters():
     parser.add_argument('--lr', type=float, default=0.001, help='learning rate')
     parser.add_argument('--weight_decay_rate', type=float, default=0.0005, help='weight decay (L2 penalty)')
     parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--epochs', type=int, default=1000, help='epochs, default as 1000')
+    parser.add_argument('--epochs', type=int, default=10000, help='epochs, default as 10000')
     parser.add_argument('--opt', type=str, default='adam', help='optimizer, default as adam')
     parser.add_argument('--step_size', type=int, default=10)
     parser.add_argument('--gamma', type=float, default=0.95)
@@ -236,15 +236,11 @@ def val(model, val_iter):
             n += y.shape[0]
         return l_sum / n
     
-def test(model_save_path, zscore, loss, model, test_iter):
-    best_model = model
-    best_model.load_state_dict(torch.load(model_save_path))
-    test_MSE = utility.evaluate_model(best_model, loss, test_iter)
-    print('Test loss {:.6f}'.format(test_MSE))
-    #test_MAE, test_MAPE, test_RMSE = utility.evaluate_metric(best_model, test_iter, zscore)
-    #print(f'MAE {test_MAE:.6f} | MAPE {test_MAPE:.8f} | RMSE {test_RMSE:.6f}')
-    test_MAE, test_RMSE, test_WMAPE = utility.evaluate_metric(best_model, test_iter, zscore)
-    print(f'MAE {test_MAE:.6f} | RMSE {test_RMSE:.6f} | WMAPE {test_WMAPE:.8f}')
+def test(model_save_path, zscore, loss, model, test_iter, dataset):
+    model.load_state_dict(torch.load(model_save_path))
+    test_MSE = utility.evaluate_model(model, loss, test_iter)
+    test_MAE, test_RMSE, test_WMAPE = utility.evaluate_metric(model, test_iter, zscore)
+    print(f'Dataset {dataset:s} | Test loss {test_MSE:.6f} | MAE {test_MAE:.6f} | RMSE {test_RMSE:.6f} | WMAPE {test_WMAPE:.8f}')
 
 if __name__ == "__main__":
     # Logging
@@ -256,4 +252,4 @@ if __name__ == "__main__":
     gso, n_vertex, zscore, train_iter, val_iter, test_iter = data_preparate(dataset, gso_type, graph_conv_type, n_his, n_pred, batch_size, device)
     loss, early_stopping, model, optimizer, scheduler = prepare_model(patience, model_save_path, Kt, Ks, blocks, n_his, n_vertex, act_func, graph_conv_type, gso, enable_bias, droprate, device, opt, lr, weight_decay_rate, step_size, gamma)
     train(loss, epochs, optimizer, scheduler, early_stopping, model, train_iter, val_iter)
-    test(zscore, loss, model, test_iter)
+    test(model_save_path, zscore, loss, model, test_iter, dataset)
