@@ -36,6 +36,24 @@ def calc_gso(dir_adj, gso_type):
         else:
             gso = sym_norm_adj
 
+    elif gso_type == 'rw_norm_adj' or gso_type == 'rw_renorm_adj' \
+        or gso_type == 'rw_norm_lap' or gso_type == 'rw_renorm_lap':
+        row_sum = np.sum(adj, axis=1).A1
+        row_sum_inv = np.power(row_sum, -1)
+        row_sum_inv[np.isinf(row_sum_inv)] = 0.
+        deg_inv = np.diag(row_sum_inv)
+        # A_{rw} = D^{-1} * A
+        rw_norm_adj = deg_inv.dot(adj)
+
+        if gso_type == 'rw_norm_lap' or gso_type == 'rw_renorm_lap':
+            rw_norm_lap = id - rw_norm_adj
+            gso = rw_norm_lap
+        else:
+            gso = rw_norm_adj
+
+    else:
+        raise ValueError(f'{gso_type} is not defined.')
+
     return gso
 
 def calc_chebynet_gso(gso):
