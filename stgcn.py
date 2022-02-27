@@ -34,7 +34,7 @@ def set_env(seed):
 def get_parameters():
     parser = argparse.ArgumentParser(description='STGCN')
     parser.add_argument('--enable_cuda', type=bool, default='True', help='enable CUDA, default as True')
-    parser.add_argument('--seed', type=int, default=42, help='set the random seed for stabilize experiment results')
+    parser.add_argument('--seed', type=int, default=42, help='set the random seed for stabilizing experiment results')
     parser.add_argument('--dataset', type=str, default='metr-la', choices=['metr-la', 'pems-bay', 'pemsd7-m'])
     parser.add_argument('--n_his', type=int, default=12)
     parser.add_argument('--n_pred', type=int, default=3, help='the number of time interval for predcition, default as 3')
@@ -236,8 +236,8 @@ def val(model, val_iter):
             n += y.shape[0]
         return l_sum / n
     
-def test(model_save_path, zscore, loss, model, test_iter, dataset):
-    model.load_state_dict(torch.load(model_save_path))
+def test(device, model_save_path, zscore, loss, model, test_iter, dataset):
+    model.load_state_dict(torch.load(model_save_path, map_location=device))
     test_MSE = utility.evaluate_model(model, loss, test_iter)
     test_MAE, test_RMSE, test_WMAPE = utility.evaluate_metric(model, test_iter, zscore)
     print(f'Dataset {dataset:s} | Test loss {test_MSE:.6f} | MAE {test_MAE:.6f} | RMSE {test_RMSE:.6f} | WMAPE {test_WMAPE:.8f}')
@@ -252,4 +252,4 @@ if __name__ == "__main__":
     gso, n_vertex, zscore, train_iter, val_iter, test_iter = data_preparate(dataset, gso_type, graph_conv_type, n_his, n_pred, batch_size, device)
     loss, early_stopping, model, optimizer, scheduler = prepare_model(patience, model_save_path, Kt, Ks, blocks, n_his, n_vertex, act_func, graph_conv_type, gso, enable_bias, droprate, device, opt, lr, weight_decay_rate, step_size, gamma)
     train(loss, epochs, optimizer, scheduler, early_stopping, model, train_iter, val_iter)
-    test(model_save_path, zscore, loss, model, test_iter, dataset)
+    test(device, model_save_path, zscore, loss, model, test_iter, dataset)
