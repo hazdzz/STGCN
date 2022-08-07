@@ -100,12 +100,8 @@ class TemporalConvLayer(nn.Module):
                 # *Language Modeling with Gated Convolutional Networks*.
                 # URL: https://arxiv.org/abs/1612.08083
                 # Input tensor X is split by a certain dimension into tensor X_a and X_b.
-                # In the original paper, GLU is defined as Linear(X_a) ⊙ Sigmoid(Linear(X_b)).
-                # However, in PyTorch, GLU is defined as X_a ⊙ Sigmoid(X_b).
+                # In PyTorch, GLU is defined as X_a ⊙ Sigmoid(X_b).
                 # URL: https://pytorch.org/docs/master/nn.functional.html#torch.nn.functional.glu
-                # Because in original paper, the representation of GLU and GTU is ambiguous.
-                # So, it is arguable which one version is correct.
-
                 # (x_p + x_in) ⊙ Sigmoid(x_q)
                 x = torch.mul((x_p + x_in), self.sigmoid(x_q))
 
