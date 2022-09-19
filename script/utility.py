@@ -66,7 +66,7 @@ def calc_chebynet_gso(gso):
     eigval_max = max(eigsh(A=gso, k=6, which='LM', return_eigenvectors=False))
 
     # If the gso is symmetric or random walk normalized Laplacian,
-    # then the maximum eigenvalue has to be smaller than or equal to 2.
+    # then the maximum eigenvalue is smaller than or equals to 2.
     if eigval_max >= 2:
         gso = gso - id
     else:
@@ -81,9 +81,7 @@ def cnv_sparse_mat_to_coo_tensor(sp_mat, device):
     v = torch.from_numpy(sp_coo_mat.data)
     s = torch.Size(sp_coo_mat.shape)
 
-    if sp_mat.dtype == np.complex64 or sp_mat.dtype == np.complex128:
-        return torch.sparse_coo_tensor(indices=i, values=v, size=s, dtype=torch.complex64, device=device, requires_grad=False)
-    elif sp_mat.dtype == np.float32 or sp_mat.dtype == np.float64:
+    if sp_mat.dtype == np.float32 or sp_mat.dtype == np.float64:
         return torch.sparse_coo_tensor(indices=i, values=v, size=s, dtype=torch.float32, device=device, requires_grad=False)
     else:
         raise TypeError(f'ERROR: The dtype of {sp_mat} is {sp_mat.dtype}, not been applied in implemented models.')

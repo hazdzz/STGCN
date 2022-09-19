@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/github/license/hazdzz/STGCN)](./LICENSE)
 
 ## About
-The PyTorch version of STGCN implemented by the paper *Spatio-Temporal Graph Convolutional Networks:
+The PyTorch version of STGCN implemented for the paper *Spatio-Temporal Graph Convolutional Networks:
 A Deep Learning Framework for Traffic Forecasting*.
 
 ## Paper
@@ -14,12 +14,12 @@ https://arxiv.org/abs/1709.04875
 ## Related works
 1. TCN: [*An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling*](https://arxiv.org/abs/1803.01271)
 2. GLU and GTU: [*Language Modeling with Gated Convolutional Networks*](https://arxiv.org/abs/1612.08083)
-3. ChebyNet: [*Convolutional Neural Networks on Graphs with Fast Localized Spectral Filtering*](https://arxiv.org/abs/1606.09375)
+3. ChebNet: [*Convolutional Neural Networks on Graphs with Fast Localized Spectral Filtering*](https://arxiv.org/abs/1606.09375)
 4. GCN: [*Semi-Supervised Classification with Graph Convolutional Networks*](https://arxiv.org/abs/1609.02907)
 
 ## Related code
 1. TCN: https://github.com/locuslab/TCN
-2. ChebyNet: https://github.com/mdeff/cnn_graph
+2. ChebNet: https://github.com/mdeff/cnn_graph
 3. GCN: https://github.com/tkipf/pygcn
 
 ## Dataset
@@ -29,7 +29,7 @@ https://arxiv.org/abs/1709.04875
 3. PeMSD7(M): [STGCN author's GitHub repository](https://github.com/VeritasYin/STGCN_IJCAI-18/blob/master/data_loader/PeMS-M.zip)
 
 ### Preprocessing
-Using the formula from [ChebyNet](https://arxiv.org/abs/1606.09375)：
+Using the formula from [ChebNet](https://arxiv.org/abs/1606.09375)：
 <img src="./figure/weighted_adjacency_matrix.png" style="zoom:100%" />
 
 ## Model structure

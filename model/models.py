@@ -25,23 +25,23 @@ class STGCNChebGraphConv(nn.Module):
     # F: Fully-Connected Layer
     # F: Fully-Connected Layer
 
-    def __init__(self, Kt, Ks, blocks, T, n_vertex, act_func, graph_conv_type, gso, bias, droprate):
+    def __init__(self, args, blocks, n_vertex):
         super(STGCNChebGraphConv, self).__init__()
         modules = []
         for l in range(len(blocks) - 3):
-            modules.append(layers.STConvBlock(Kt, Ks, n_vertex, blocks[l][-1], blocks[l+1], act_func, graph_conv_type, gso, bias, droprate))
+            modules.append(layers.STConvBlock(args.Kt, args.Ks, n_vertex, blocks[l][-1], blocks[l+1], args.act_func, args.graph_conv_type, args.gso, args.enable_bias, args.droprate))
         self.st_blocks = nn.Sequential(*modules)
-        Ko = T - (len(blocks) - 3) * 2 * (Kt - 1)
+        Ko = args.n_his - (len(blocks) - 3) * 2 * (args.Kt - 1)
         self.Ko = Ko
         if self.Ko > 1:
-            self.output = layers.OutputBlock(Ko, blocks[-3][-1], blocks[-2], blocks[-1][0], n_vertex, act_func, bias, droprate)
+            self.output = layers.OutputBlock(Ko, blocks[-3][-1], blocks[-2], blocks[-1][0], n_vertex, args.act_func, args.enable_bias, args.droprate)
         elif self.Ko == 0:
-            self.fc1 = nn.Linear(in_features=blocks[-3][-1], out_features=blocks[-2][0], bias=bias)
-            self.fc2 = nn.Linear(in_features=blocks[-2][0], out_features=blocks[-1][0], bias=bias)
+            self.fc1 = nn.Linear(in_features=blocks[-3][-1], out_features=blocks[-2][0], bias=args.enable_bias)
+            self.fc2 = nn.Linear(in_features=blocks[-2][0], out_features=blocks[-1][0], bias=args.enable_bias)
             self.relu = nn.ReLU()
             self.leaky_relu = nn.LeakyReLU()
             self.silu = nn.SiLU()
-            self.dropout = nn.Dropout(p=droprate)
+            self.dropout = nn.Dropout(p=args.droprate)
 
     def forward(self, x):
         x = self.st_blocks(x)
@@ -77,23 +77,23 @@ class STGCNGraphConv(nn.Module):
     # F: Fully-Connected Layer
     # F: Fully-Connected Layer
 
-    def __init__(self, Kt, Ks, blocks, T, n_vertex, act_func, graph_conv_type, filter, bias, droprate):
+    def __init__(self, args, blocks, n_vertex):
         super(STGCNGraphConv, self).__init__()
         modules = []
         for l in range(len(blocks) - 3):
-            modules.append(layers.STConvBlock(Kt, Ks, n_vertex, blocks[l][-1], blocks[l+1], act_func, graph_conv_type, filter, bias, droprate))
+            modules.append(layers.STConvBlock(args.Kt, args.Ks, n_vertex, blocks[l][-1], blocks[l+1], args.act_func, args.graph_conv_type, args.gso, args.enable_bias, args.droprate))
         self.st_blocks = nn.Sequential(*modules)
-        Ko = T - (len(blocks) - 3) * 2 * (Kt - 1)
+        Ko = args.n_his - (len(blocks) - 3) * 2 * (args.Kt - 1)
         self.Ko = Ko
         if self.Ko > 1:
-            self.output = layers.OutputBlock(Ko, blocks[-3][-1], blocks[-2], blocks[-1][0], n_vertex, act_func, bias, droprate)
+            self.output = layers.OutputBlock(Ko, blocks[-3][-1], blocks[-2], blocks[-1][0], n_vertex, args.act_func, args.enable_bias, args.droprate)
         elif self.Ko == 0:
-            self.fc1 = nn.Linear(in_features=blocks[-3][-1], out_features=blocks[-2][0], bias=bias)
-            self.fc2 = nn.Linear(in_features=blocks[-2][0], out_features=blocks[-1][0], bias=bias)
+            self.fc1 = nn.Linear(in_features=blocks[-3][-1], out_features=blocks[-2][0], bias=args.enable_bias)
+            self.fc2 = nn.Linear(in_features=blocks[-2][0], out_features=blocks[-1][0], bias=args.enable_bias)
             self.relu = nn.ReLU()
             self.leaky_relu = nn.LeakyReLU()
             self.silu = nn.SiLU()
-            self.do = nn.Dropout(p=droprate)
+            self.do = nn.Dropout(p=args.droprate)
 
     def forward(self, x):
         x = self.st_blocks(x)
