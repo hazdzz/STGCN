@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
-from scipy.sparse.linalg import eigsh
+from scipy.sparse.linalg import norm
 import torch
 
 def calc_gso(dir_adj, gso_type):
@@ -63,7 +63,7 @@ def calc_chebynet_gso(gso):
         gso = gso.tocsc()
 
     id = sp.identity(gso.shape[0], format='csc')
-    eigval_max = max(eigsh(A=gso, k=6, which='LM', return_eigenvectors=False))
+    eigval_max = norm(x=gso, ord=2)
 
     # If the gso is symmetric or random walk normalized Laplacian,
     # then the maximum eigenvalue is smaller than or equals to 2.
