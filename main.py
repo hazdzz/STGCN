@@ -161,9 +161,9 @@ def train(loss, args, optimizer, scheduler, es, model, train_iter, val_iter):
             optimizer.zero_grad()
             l.backward()
             optimizer.step()
-            scheduler.step()
             l_sum += l.item() * y.shape[0]
             n += y.shape[0]
+        scheduler.step()
         val_loss = val(model, val_iter)
         # GPU memory usage
         gpu_mem_alloc = torch.cuda.max_memory_allocated() / 1000000 if torch.cuda.is_available() else 0
