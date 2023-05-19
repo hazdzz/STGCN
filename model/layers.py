@@ -60,11 +60,11 @@ class TemporalConvLayer(nn.Module):
 
     # Temporal Convolution Layer (GLU)
     #
-    #        |--------------------------------| * Residual Connection *
+    #        |--------------------------------| * residual connection *
     #        |                                |
-    #        |    |--->--- CasualConv2d ----- + -------|       
+    #        |    |--->--- casualconv2d ----- + -------|       
     # -------|----|                                   ⊙ ------>
-    #             |--->--- CasualConv2d --- Sigmoid ---|                               
+    #             |--->--- casualconv2d --- sigmoid ---|                               
     #
     
     #param x: tensor, [bs, c_in, ts, n_vertex]
@@ -96,17 +96,19 @@ class TemporalConvLayer(nn.Module):
             x_q = x_causal_conv[:, -self.c_out:, :, :]
 
             if self.act_func == 'glu':
-                # GLU was first purposed in
-                # *Language Modeling with Gated Convolutional Networks*.
+                # Explanation of Gated Linear Units (GLU):
+                # The concept of GLU was first introduced in the paper 
+                # "Language Modeling with Gated Convolutional Networks". 
                 # URL: https://arxiv.org/abs/1612.08083
-                # Input tensor X is split by a certain dimension into tensor X_a and X_b.
-                # In PyTorch, GLU is defined as X_a ⊙ Sigmoid(X_b).
-                # URL: https://pytorch.org/docs/master/nn.functional.html#torch.nn.functional.glu
-                # (x_p + x_in) ⊙ Sigmoid(x_q)
+                # In the GLU operation, the input tensor X is divided into two tensors, X_a and X_b, 
+                # along a specific dimension.
+                # In PyTorch, GLU is computed as the element-wise multiplication of X_a and sigmoid(X_b).
+                # More information can be found here: https://pytorch.org/docs/master/nn.functional.html#torch.nn.functional.glu
+                # The provided code snippet, (x_p + x_in) ⊙ sigmoid(x_q), is an example of GLU operation. 
                 x = torch.mul((x_p + x_in), self.sigmoid(x_q))
 
             else:
-                # Tanh(x_p + x_in) ⊙ Sigmoid(x_q)
+                # tanh(x_p + x_in) ⊙ sigmoid(x_q)
                 x = torch.mul(self.tanh(x_p + x_in), self.sigmoid(x_q))
 
         elif self.act_func == 'relu':
