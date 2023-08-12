@@ -5,11 +5,26 @@
 [![License](https://img.shields.io/github/license/hazdzz/STGCN)](./LICENSE)
 
 ## About
-The PyTorch version of STGCN implemented for the paper *Spatio-Temporal Graph Convolutional Networks:
+The PyTorch version of Linformer was implemented for the paper titled *Spatio-Temporal Graph Convolutional Networks:
 A Deep Learning Framework for Traffic Forecasting*.
 
 ## Paper
 https://arxiv.org/abs/1709.04875
+
+## Citation
+```
+@inproceedings{10.5555/3304222.3304273,
+author = {Yu, Bing and Yin, Haoteng and Zhu, Zhanxing},
+title = {Spatio-Temporal Graph Convolutional Networks: A Deep Learning Framework for Traffic Forecasting},
+year = {2018},
+isbn = {9780999241127},
+publisher = {AAAI Press},
+booktitle = {Proceedings of the 27th International Joint Conference on Artificial Intelligence},
+pages = {3634–3640},
+numpages = {7},
+series = {IJCAI'18}
+}
+```
 
 ## Related works
 1. TCN: [*An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling*](https://arxiv.org/abs/1803.01271)
