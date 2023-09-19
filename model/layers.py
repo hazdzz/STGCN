@@ -81,10 +81,7 @@ class TemporalConvLayer(nn.Module):
         else:
             self.causal_conv = CausalConv2d(in_channels=c_in, out_channels=c_out, kernel_size=(Kt, 1), enable_padding=False, dilation=1)
         self.act_func = act_func
-        self.sigmoid = nn.Sigmoid()
-        self.tanh = nn.Tanh()
         self.relu = nn.ReLU()
-        self.leaky_relu = nn.LeakyReLU()
         self.silu = nn.SiLU()
 
     def forward(self, x):   
@@ -105,17 +102,14 @@ class TemporalConvLayer(nn.Module):
                 # In PyTorch, GLU is computed as the element-wise multiplication of X_a and sigmoid(X_b).
                 # More information can be found here: https://pytorch.org/docs/master/nn.functional.html#torch.nn.functional.glu
                 # The provided code snippet, (x_p + x_in) ⊙ sigmoid(x_q), is an example of GLU operation. 
-                x = torch.mul((x_p + x_in), self.sigmoid(x_q))
+                x = torch.mul((x_p + x_in), torch.sigmoid(x_q))
 
             else:
                 # tanh(x_p + x_in) ⊙ sigmoid(x_q)
-                x = torch.mul(self.tanh(x_p + x_in), self.sigmoid(x_q))
+                x = torch.mul(torch.tanh(x_p + x_in), torch.sigmoid(x_q))
 
         elif self.act_func == 'relu':
             x = self.relu(x_causal_conv + x_in)
-        
-        elif self.act_func == 'leaky_relu':
-            x = self.leaky_relu(x_causal_conv + x_in)
 
         elif self.act_func == 'silu':
             x = self.silu(x_causal_conv + x_in)
@@ -277,8 +271,6 @@ class OutputBlock(nn.Module):
         self.fc2 = nn.Linear(in_features=channels[1], out_features=end_channel, bias=bias)
         self.tc1_ln = nn.LayerNorm([n_vertex, channels[0]])
         self.relu = nn.ReLU()
-        self.leaky_relu = nn.LeakyReLU()
-        self.silu = nn.SiLU()
         self.dropout = nn.Dropout(p=droprate)
 
     def forward(self, x):
@@ -286,6 +278,7 @@ class OutputBlock(nn.Module):
         x = self.tc1_ln(x.permute(0, 2, 3, 1))
         x = self.fc1(x)
         x = self.relu(x)
+        x = self.dropout(x)
         x = self.fc2(x).permute(0, 3, 1, 2)
 
         return x
