@@ -80,9 +80,9 @@ class TemporalConvLayer(nn.Module):
             self.causal_conv = CausalConv2d(in_channels=c_in, out_channels=2 * c_out, kernel_size=(Kt, 1), enable_padding=False, dilation=1)
         else:
             self.causal_conv = CausalConv2d(in_channels=c_in, out_channels=c_out, kernel_size=(Kt, 1), enable_padding=False, dilation=1)
-        self.act_func = act_func
         self.relu = nn.ReLU()
         self.silu = nn.SiLU()
+        self.act_func = act_func
 
     def forward(self, x):   
         x_in = self.align(x)[:, :, self.Kt - 1:, :]
