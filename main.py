@@ -20,12 +20,11 @@ from model import models
 
 def set_env(seed):
     # Set available CUDA devices
-    # This option is crucial for an multi-GPU device
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1'
+    # os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1'
     # os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
     # os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':16:8'
-    os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
-    os.environ['PYTHONHASHSEED']=str(seed)
+    # os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
+    os.environ['PYTHONHASHSEED'] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -33,7 +32,7 @@ def set_env(seed):
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
-    torch.use_deterministic_algorithms(True)
+    # torch.use_deterministic_algorithms(True)
 
 def get_parameters():
     parser = argparse.ArgumentParser(description='STGCN')
