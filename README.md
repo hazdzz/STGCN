@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/github/license/hazdzz/STGCN)](./LICENSE)
 
 ## About
-The PyTorch implementation of STGCN was implemented for the paper titled *Spatio-Temporal Graph Convolutional Networks:
+The PyTorch implementation of STGCN from the paper *Spatio-Temporal Graph Convolutional Networks:
 A Deep Learning Framework for Traffic Forecasting*.
 
 ## Paper
