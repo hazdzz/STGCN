@@ -155,9 +155,9 @@ def train(loss, args, optimizer, scheduler, es, model, train_iter, val_iter):
         l_sum, n = 0.0, 0  # 'l_sum' is epoch sum loss, 'n' is epoch instance number
         model.train()
         for x, y in tqdm.tqdm(train_iter):
+            optimizer.zero_grad()
             y_pred = model(x).view(len(x), -1)  # [batch_size, num_nodes]
             l = loss(y_pred, y)
-            optimizer.zero_grad()
             l.backward()
             optimizer.step()
             l_sum += l.item() * y.shape[0]
