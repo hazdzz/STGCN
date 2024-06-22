@@ -1,8 +1,10 @@
 import logging
 import os
+import gc
 import argparse
 import math
 import random
+import warnings
 import tqdm
 import numpy as np
 import pandas as pd
@@ -13,7 +15,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.utils as utils
 
-from script import dataloader, utility, earlystopping
+from script import dataloader, utility, earlystopping, opt
 from model import models
 
 #import nni
@@ -51,13 +53,13 @@ def get_parameters():
     parser.add_argument('--enable_bias', type=bool, default=True, help='default as True')
     parser.add_argument('--droprate', type=float, default=0.5)
     parser.add_argument('--lr', type=float, default=0.001, help='learning rate')
-    parser.add_argument('--weight_decay_rate', type=float, default=0.0005, help='weight decay (L2 penalty)')
+    parser.add_argument('--weight_decay_rate', type=float, default=0.001, help='weight decay (L2 penalty)')
     parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--epochs', type=int, default=10000, help='epochs, default as 10000')
-    parser.add_argument('--opt', type=str, default='adam', help='optimizer, default as adam')
+    parser.add_argument('--epochs', type=int, default=1000, help='epochs, default as 1000')
+    parser.add_argument('--opt', type=str, default='lion', choices=['adamw', 'lion', 'tiger'], help='optimizer, default as lion')
     parser.add_argument('--step_size', type=int, default=10)
     parser.add_argument('--gamma', type=float, default=0.95)
-    parser.add_argument('--patience', type=int, default=30, help='early stopping patience')
+    parser.add_argument('--patience', type=int, default=10, help='early stopping patience')
     args = parser.parse_args()
     print('Training configs: {}'.format(args))
 
@@ -70,8 +72,10 @@ def get_parameters():
         # This option is crucial for multiple GPUs
         # 'cuda' ≡ 'cuda:0'
         device = torch.device('cuda')
+        torch.cuda.empty_cache() # Clean cache
     else:
         device = torch.device('cpu')
+        gc.collect() # Clean cache
     
     Ko = args.n_his - (args.Kt - 1) * 2 * args.stblock_num
 
@@ -130,27 +134,30 @@ def data_preparate(args, device):
 
 def prepare_model(args, blocks, n_vertex):
     loss = nn.MSELoss()
-    es = earlystopping.EarlyStopping(mode='min', min_delta=0.0, patience=args.patience)
+    es = earlystopping.EarlyStopping(delta=0.0, 
+                                     patience=args.patience, 
+                                     verbose=True, 
+                                     path="STCGN_" + args.dataset + ".pt")
 
     if args.graph_conv_type == 'cheb_graph_conv':
         model = models.STGCNChebGraphConv(args, blocks, n_vertex).to(device)
     else:
         model = models.STGCNGraphConv(args, blocks, n_vertex).to(device)
 
-    if args.opt == "rmsprop":
-        optimizer = optim.RMSprop(model.parameters(), lr=args.lr, weight_decay=args.weight_decay_rate)
-    elif args.opt == "adam":
-        optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay_rate, amsgrad=False)
-    elif args.opt == "adamw":
-        optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay_rate, amsgrad=False)
+    if args.opt == "adamw":
+        optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay_rate)
+    elif args.opt == 'lion':
+        optimizer = opt.Lion(params=model.parameters(), lr=args.lr, weight_decay=args.weight_decay_rate)
+    elif args.opt == 'tiger':
+        optimizer = opt.Tiger(params=model.parameters(), lr=args.lr, weight_decay=args.weight_decay_rate)
     else:
-        raise NotImplementedError(f'ERROR: The optimizer {args.opt} is not implemented.')
+        raise ValueError(f'ERROR: The {args.opt} optimizer is undefined.')
 
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)
 
     return loss, es, model, optimizer, scheduler
 
-def train(loss, args, optimizer, scheduler, es, model, train_iter, val_iter):
+def train(args, model, loss, optimizer, scheduler, es, train_iter, val_iter):
     for epoch in range(args.epochs):
         l_sum, n = 0.0, 0  # 'l_sum' is epoch sum loss, 'n' is epoch instance number
         model.train()
@@ -169,13 +176,15 @@ def train(loss, args, optimizer, scheduler, es, model, train_iter, val_iter):
         print('Epoch: {:03d} | Lr: {:.20f} |Train loss: {:.6f} | Val loss: {:.6f} | GPU occupy: {:.6f} MiB'.\
             format(epoch+1, optimizer.param_groups[0]['lr'], l_sum / n, val_loss, gpu_mem_alloc))
 
-        if es.step(val_loss):
-            print('Early stopping.')
+        es(val_loss, model)
+        if es.early_stop:
+            print("Early stopping")
             break
 
 @torch.no_grad()
 def val(model, val_iter):
     model.eval()
+
     l_sum, n = 0.0, 0
     for x, y in val_iter:
         y_pred = model(x).view(len(x), -1)
@@ -186,7 +195,9 @@ def val(model, val_iter):
 
 @torch.no_grad() 
 def test(zscore, loss, model, test_iter, args):
+    model.load_state_dict(torch.load("STGCN_" + args.dataset + ".pt"))
     model.eval()
+
     test_MSE = utility.evaluate_model(model, loss, test_iter)
     test_MAE, test_RMSE, test_WMAPE = utility.evaluate_metric(model, test_iter, zscore)
     print(f'Dataset {args.dataset:s} | Test loss {test_MSE:.6f} | MAE {test_MAE:.6f} | RMSE {test_RMSE:.6f} | WMAPE {test_WMAPE:.8f}')
@@ -197,8 +208,11 @@ if __name__ == "__main__":
     #logging.basicConfig(filename='stgcn.log', level=logging.INFO)
     logging.basicConfig(level=logging.INFO)
 
+    warnings.filterwarnings("ignore", category=FutureWarning)
+    warnings.filterwarnings("ignore", category=UserWarning)
+
     args, device, blocks = get_parameters()
     n_vertex, zscore, train_iter, val_iter, test_iter = data_preparate(args, device)
     loss, es, model, optimizer, scheduler = prepare_model(args, blocks, n_vertex)
-    train(loss, args, optimizer, scheduler, es, model, train_iter, val_iter)
+    train(args, model, loss, optimizer, scheduler, es, train_iter, val_iter)
     test(zscore, loss, model, test_iter, args)

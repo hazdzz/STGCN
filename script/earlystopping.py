@@ -1,50 +1,48 @@
+import math
 import torch
 
-class EarlyStopping(object):
-    def __init__(self, mode='min', min_delta=0, patience=10, percentage=False):
-        self.mode = mode
-        self.min_delta = min_delta
+class EarlyStopping:
+    """Early stops the training if validation loss doesn't improve after a given patience."""
+    def __init__(self, delta: float = 0.0, patience: int = 7, verbose: bool = True, path: str = 'checkpoint.pt'):
+        """
+        Args:
+            patience (int): How long to wait after last time validation loss improved.
+                            Default: 7
+            verbose (bool): If True, prints a message for each validation loss improvement. 
+                            Default: False
+            delta (float): Minimum change in the monitored quantity to qualify as an improvement.
+                            Default: 0
+            path (str): Path for the checkpoint to be saved to.
+                            Default: 'checkpoint.pt'           
+        """
         self.patience = patience
-        self.best = None
-        self.num_bad_epochs = 0
-        self.is_better = None
-        self._init_is_better(mode, min_delta, percentage)
+        self.verbose = verbose
+        self.counter = 0
+        self.best_score = None
+        self.early_stop = False
+        self.val_loss_min = math.inf
+        self.delta = delta
+        self.path = path
 
-        if patience == 0:
-            self.is_better = lambda a, b: True
-            self.step = lambda a: False
+    def __call__(self, val_loss, model):
 
-    def step(self, metrics):
-        if self.best is None:
-            self.best = metrics
-            return False
+        score = -val_loss
 
-        if torch.isnan(metrics):
-            return True
-
-        if self.is_better(metrics, self.best):
-            self.num_bad_epochs = 0
-            self.best = metrics
+        if self.best_score is None:
+            self.best_score = score
+            self.save_checkpoint(val_loss, model)
+        elif score <= self.best_score + self.delta:
+            self.counter += 1
+            print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+            if self.counter >= self.patience:
+                self.early_stop = True
         else:
-            self.num_bad_epochs += 1
+            self.best_score = score
+            self.save_checkpoint(val_loss, model)
+            self.counter = 0
 
-        if self.num_bad_epochs >= self.patience:
-            return True
-
-        return False
-
-    def _init_is_better(self, mode, min_delta, percentage):
-        if mode not in {'min', 'max'}:
-            raise ValueError('mode ' + mode + ' is unknown!')
-        if not percentage:
-            if mode == 'min':
-                self.is_better = lambda a, best: a < best - min_delta
-            if mode == 'max':
-                self.is_better = lambda a, best: a > best + min_delta
-        else:
-            if mode == 'min':
-                self.is_better = lambda a, best: a < best - (
-                            best * min_delta / 100)
-            if mode == 'max':
-                self.is_better = lambda a, best: a > best + (
-                            best * min_delta / 100)
+    def save_checkpoint(self, val_loss, model):
+        if self.verbose:
+            print(f'Validation loss decreased ({self.val_loss_min:.4f} --> {val_loss:.4f}). Saving model...')
+        torch.save(model.state_dict(), self.path)
+        self.val_loss_min = val_loss

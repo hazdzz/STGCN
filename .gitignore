@@ -4,6 +4,10 @@
 # macOS
 .DS_Store
 
+# PyTorch models
+*.pt
+*.pth
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
