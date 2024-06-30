@@ -39,8 +39,6 @@ class STGCNChebGraphConv(nn.Module):
             self.fc1 = nn.Linear(in_features=blocks[-3][-1], out_features=blocks[-2][0], bias=args.enable_bias)
             self.fc2 = nn.Linear(in_features=blocks[-2][0], out_features=blocks[-1][0], bias=args.enable_bias)
             self.relu = nn.ReLU()
-            self.leaky_relu = nn.LeakyReLU()
-            self.silu = nn.SiLU()
             self.dropout = nn.Dropout(p=args.droprate)
 
     def forward(self, x):
@@ -91,8 +89,6 @@ class STGCNGraphConv(nn.Module):
             self.fc1 = nn.Linear(in_features=blocks[-3][-1], out_features=blocks[-2][0], bias=args.enable_bias)
             self.fc2 = nn.Linear(in_features=blocks[-2][0], out_features=blocks[-1][0], bias=args.enable_bias)
             self.relu = nn.ReLU()
-            self.leaky_relu = nn.LeakyReLU()
-            self.silu = nn.SiLU()
             self.do = nn.Dropout(p=args.droprate)
 
     def forward(self, x):
