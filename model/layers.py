@@ -243,7 +243,7 @@ class STConvBlock(nn.Module):
         self.tmp_conv1 = TemporalConvLayer(Kt, last_block_channel, channels[0], n_vertex, act_func)
         self.graph_conv = GraphConvLayer(graph_conv_type, channels[0], channels[1], Ks, gso, bias)
         self.tmp_conv2 = TemporalConvLayer(Kt, channels[1], channels[2], n_vertex, act_func)
-        self.tc2_ln = nn.LayerNorm([n_vertex, channels[2]])
+        self.tc2_ln = nn.LayerNorm([n_vertex, channels[2]], eps=1e-12)
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(p=droprate)
 
@@ -269,7 +269,7 @@ class OutputBlock(nn.Module):
         self.tmp_conv1 = TemporalConvLayer(Ko, last_block_channel, channels[0], n_vertex, act_func)
         self.fc1 = nn.Linear(in_features=channels[0], out_features=channels[1], bias=bias)
         self.fc2 = nn.Linear(in_features=channels[1], out_features=end_channel, bias=bias)
-        self.tc1_ln = nn.LayerNorm([n_vertex, channels[0]])
+        self.tc1_ln = nn.LayerNorm([n_vertex, channels[0]], eps=1e-12)
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(p=droprate)
 
