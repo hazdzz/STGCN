@@ -137,7 +137,7 @@ def prepare_model(args, blocks, n_vertex):
     es = earlystopping.EarlyStopping(delta=0.0, 
                                      patience=args.patience, 
                                      verbose=True, 
-                                     path="STCGN_" + args.dataset + ".pt")
+                                     path="STGCN_" + args.dataset + ".pt")
 
     if args.graph_conv_type == 'cheb_graph_conv':
         model = models.STGCNChebGraphConv(args, blocks, n_vertex).to(device)
